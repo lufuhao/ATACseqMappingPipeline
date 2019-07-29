@@ -58,7 +58,7 @@
 
 ---
 
-## ## Author:
+## Author:
 >
 >  Fu-Hao Lu
 >
