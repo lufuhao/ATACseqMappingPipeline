@@ -45,7 +45,7 @@ help() {
 
 cat<<HELP
 	
-$0 --- Brief Introduction
+$0
 	
 Version: 20190719
 
@@ -67,12 +67,15 @@ Descriptions:
 Options:
   -h    -------    Print this help message
   -i    <FASTA>    Fasta file to be splited
+  -m    <Fasta>    Mitochondria Fasta
+  -c    <Fasta>    Chloroplast Fasta
   -s    <INT>      Maximum size each split
-  -p    <STR>      Output InDex prefix
+                     Longest sequence in fasta <=this value
+  -p    <STR>      Output BOWTIE index prefix
   -D    <Path>     Path to store index
 
 Example:
-  $0 -i ./chr1.fa -s 3000000000 -p myIndex -D ./path
+  $0 -i ./chr1.fa -s 4000000000 -p myIndex -D ./path
 
 
 
@@ -89,8 +92,7 @@ exit 0
 
 }
 
-[ -z "$@" ] && help
-[ -z "$1" ] && help
+[ $# -lt 1 ] && help
 [ "$1" = "-h" ] || [ "$1" = "--help" ] && help
 #################### Environments ###################################
 echo -e "\n######################\nProgram $ProgramName initializing ...\n######################\n"
@@ -102,6 +104,8 @@ echo -e "\n######################\nProgram $ProgramName initializing ...\n######
 
 RunDir=$PWD
 opt_i=''
+opt_m=''
+opt_c=''
 opt_s=4000000000
 opt_p='myIndex'
 opt_D=$PWD
@@ -112,6 +116,8 @@ while [ -n "$1" ]; do
   case "$1" in
     -h) help;shift 1;;
     -i) opt_i=$2;shift 2;;
+    -m) opt_m=$2;shift 2;;
+    -c) opt_c=$2;shift 2;;
     -s) opt_s=$2;shift 2;;
     -p) opt_p=$2;shift 2;;
     -D) opt_D=$2;shift 2;;
@@ -187,6 +193,35 @@ echo "Info: Index PATH: $opt_D"
 
 
 cd $opt_D
+### Merge fasta first
+FileToBeMerged=''
+if [ ! -z "$opt_m" ]; then
+	if [ -s "$opt_m" ]; then
+		FileToBeMerged="$FileToBeMerged $opt_m"
+	else
+		echo "Error: Mitochondrial DNA was specified but not exists" >&2
+		exit 100
+	fi
+fi
+if [ ! -z "$opt_c" ]; then
+	if [ -s "$opt_c" ]; then
+		FileToBeMerged="$FileToBeMerged $opt_c"
+	else
+		echo "Error: Cloroplast DNA was specified but not exists" >&2
+		exit 100
+	fi
+fi
+if [ ! -z "$FileToBeMerged" ]; then
+	cat $opt_i $FileToBeMerged > $opt_p.merged.fa
+	if [ $? -ne 0 ] || [ ! -s "" ]; then
+		echo "Error: cat not merge genome + mtDNA + ctDNA" >&2
+		exit 100
+	fi
+	opt_i="$opt_p.merged.fa"
+fi
+
+
+
 ### Split fasta
 fasta_splitter.pl  -i $opt_i -p $opt_p -l $opt_s
 if [ $? -ne 0 ]; then

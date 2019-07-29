@@ -45,7 +45,7 @@ help() {
 
 cat<<HELP
 	
-$0 --- Brief Introduction
+$0
 	
 Version: 20190718
 
@@ -73,13 +73,22 @@ Options:
   -D1   <PATH>     Running Folder/Path
   -D2   <PATH>     Folder/Path for bowtie mapping BAMs
   -D3   <PATH>     Folder/Path for Cleaning BAMs
-  -exu  <FILE>     Chromosome Name to be excluded, like mitochondria or chloroplast genome
+  -exu  <FILE>     Chromosome Name to be excluded
+                     Mitochondria and Chloroplast genomes
+                     Must exclude reads mapped to these two naked DNAs
   -t    <INT>      Num of threads; for samtools sort
   -d    -----      delete temporary files
 
 Example:
-  $0 -i ./chr1.fa -t 10
-
+  $0 -1 In1.R1.Fq.gz,In2.R1.Fq.gz \
+     -2 In1.R2.Fq.gz,In2.R2.Fq.gz \
+     -p In1,In2 -x /path/Index1,/path/Index2,/path/Index3 \
+     -D1 /Path/to/run \
+     -D2 /Path/to/run/5.mapping \
+     -D3 /Path/to/run/8.merge \
+     -exu /path/to/mit.cp.names \
+     -t 1
+ 
 
 
 Author:

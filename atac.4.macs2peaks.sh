@@ -85,7 +85,8 @@ Options:
 
 
 Example:
-  $0 -i ./chr1.fa -s 3000000000 -p myIndex -D ./path
+  $0 -i In1.bam,In2.bam -g 1.5e10  -p In1,In2 -o MyOut \
+     -D /path.to/run -t 1s
 
 
 
@@ -102,7 +103,6 @@ exit 0
 
 }
 
-#[ -z "$@" ] && help
 [ $# -lt 1 ] && help
 [ "$1" = "-h" ] || [ "$1" = "--help" ] && help
 #################### Environments ###################################

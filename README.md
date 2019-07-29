@@ -22,6 +22,12 @@
 
 * Linux: grep, perl, cut, sort, echo, cat, echo
 
+* trimmomatic
+
+* trim_galore
+
+* picard_tools
+
 * Bowtie
 
 * BEDtools
