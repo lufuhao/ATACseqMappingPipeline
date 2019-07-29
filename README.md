@@ -41,6 +41,20 @@
     macs2_bedpe_from_bampe.sh
 
 
+## Options
+
+    See '-h' for help
+
+1. 
+
+2. atac.2.index.split.sh
+
+3. atac.3.bowtie.mapping.sh
+
+4. atac.4.macs2peaks.sh
+
+
+## Examples
 
 ---
 
