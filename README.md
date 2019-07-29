@@ -10,11 +10,39 @@
 
     1. Fastqc, trimglore, trimmomatic to clean reads
 
-	2. Merge Genome+CtDNA+mtDNA, Split Genome fasta, and bowtie index
+    2. Merge Genome+CtDNA+mtDNA, Split Genome fasta, and bowtie index
 
-	3. Bowtie mapping, merge, re-coordinate, sort and rmdup the BAMs
+    3. Bowtie mapping, merge, re-coordinate, sort and rmdup the BAMs
 
-	4. BAM to BAMPE, then to BEDPE, MACS2 callpeaks
+    4. BAM to BAMPE, then to BEDPE, MACS2 callpeaks
+
+---
+
+## Requirements
+
+* Linux: grep, perl, cut, sort, echo, cat, echo
+
+* Bowtie
+
+* BEDtools
+
+* SAMtools
+
+* bamaddrg
+
+* FuhaoBin: 
+
+    FuhaoBashModulesbam_filter_by_readname_file.pl
+
+    bam_restore_splited_coords.pl
+
+    fasta_splitter.pl
+
+    macs2_bedpe_from_bampe.sh
+
+
+
+---
 
 ## ## Author:
 >
