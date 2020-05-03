@@ -257,6 +257,15 @@ echo "    Trimmomatic adaptor: $TrimmomaticAdaptors"
 if [ ! -d $opt_D ]; then
 	mkdir -p $opt_D
 fi
+if [ ! -d $opt_Dfqc ]; then
+	mkdir -p $opt_Dfqc
+fi
+if [ ! -d $opt_Dgal ]; then
+	mkdir -p $opt_Dgal
+fi
+if [ ! -d $opt_Dtrm ]; then
+	mkdir -p $opt_Dtrm
+fi
 
 
 
