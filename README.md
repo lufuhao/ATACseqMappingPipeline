@@ -1,5 +1,7 @@
 # ATACseqMappingPipeline
 
+RRID: [SCR_017558](https://scicrunch.org/resolver/RRID:SCR_017558)
+
 *    This Pipeline is designed to map ATAC-seq data to large genome, for example, for wheat.
 
 *    It splits large genome files into parts and do the mapping and then finally merge them
@@ -51,7 +53,7 @@
 
     See '-h' for help
 
-1. 
+1. Trim and clean reads
 
 2. atac.2.index.split.sh
 
