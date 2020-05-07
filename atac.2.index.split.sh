@@ -214,7 +214,7 @@ fi
 if [ ! -z "$FileToBeMerged" ]; then
 	cat $opt_i $FileToBeMerged > $opt_p.merged.fa
 	if [ $? -ne 0 ] || [ ! -s "$opt_p.merged.fa" ]; then
-		echo "Error: cat not merge genome + mtDNA + ctDNA" >&2
+		echo "Error: can not merge genome + mtDNA + ctDNA" >&2
 		exit 100;
 	fi
 	opt_i="$opt_p.merged.fa"
