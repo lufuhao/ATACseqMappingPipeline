@@ -86,7 +86,7 @@ Options:
 
 Example:
   $0 -i In1.bam,In2.bam -g 1.5e10  -p In1,In2 -o MyOut \
-     -D /path.to/run -t 1s
+     -D /path.to/run -t 1
 
 
 
