@@ -1,0 +1,15 @@
+#!/usr/bin/Rscript
+
+
+args <- commandArgs(trailingOnly = TRUE)
+
+bed_input=args[1]
+eps_output=args[2]
+
+a=read.table(bed_input)[,2:3]
+b=a$V3-a$V2
+#png(file=eps_output)
+pdf(file=eps_output)
+hist(b,main="Insertion Size distribution",ylab="Read Count",xlab="Insert Size",xaxt="n",breaks=seq(0,max(a),by=10)); 
+axis(side=1,at=seq(0,max(a),by=100),labels=seq(0,max(a),by=100));
+dev.off()

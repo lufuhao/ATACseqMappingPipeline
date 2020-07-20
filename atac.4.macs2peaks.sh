@@ -47,7 +47,7 @@ cat<<HELP
 	
 $0 --- Brief Introduction
 	
-Version: 20190723
+Version: 20200720
 
 
 
@@ -55,7 +55,7 @@ Requirements:
     Linux: perl, echo
     BEDtools
     bamaddrg
-    macs2_bedpe_from_bampe.sh
+    macs2_bedpe_from_bampe.sh [Included in script subfolder]
 
 
 
@@ -172,7 +172,7 @@ Bampe2Bedpe () {
 			exit 100
 		fi
 	fi
-	macs2_bedpe_from_bampe.sh -i $BBbamout -o $BBbedout
+	$RootDir/scripts/macs2_bedpe_from_bampe.sh -i $BBbamout -o $BBbedout
 	if [ $? -ne 0 ] || [ ! -s $BBbedout ]; then
 		echo "${BBsubinfo}Error: bam2bed error" >&2
 		exit 100
@@ -184,9 +184,10 @@ Bampe2Bedpe () {
 
 #################### Command test ###################################
 
-CmdExists 'macs2_bedpe_from_bampe.sh'
-if [ $? -ne 0 ]; then
-	echo "Error: script 'macs2_bedpe_from_bampe.sh' is required but not found.  Aborting..." >&2 
+#CmdExists 'macs2_bedpe_from_bampe.sh'
+#if [ $? -ne 0 ]; then
+if [ ! -s $RootDir/scripts/macs2_bedpe_from_bampe.sh ]
+	echo "Error: script '$RootDir/scripts/macs2_bedpe_from_bampe.sh' is required but not found.  Aborting..." >&2 
 	exit 127
 fi
 CmdExists 'bedtools'
@@ -261,6 +262,9 @@ for ((BamNum=0;BamNum < ${#BAMInArr[@]};BamNum++)); do
 	fi
 	BedToMerge="$BedToMerge $BedSort"
 	BedArr+=("$BedSort")
+	if [ ! -s "$BedSort.pdf" ]; then
+		Rscript $RootDir/scripts/dist_bin_plot.insert.size.Rscript $BedSort $BedSort.pdf
+	fi
 done
 ###Control
 BedControl="$opt_o.control.bed"
@@ -292,6 +296,9 @@ if [ -s "$opt_c" ]; then
 	else
 		echo "Info: using existing control sorted BEDPE: $BedControlSort"
 	fi
+	if [ ! -s "$BedControlSort.pdf" ]; then
+		Rscript $RootDir/scripts/dist_bin_plot.insert.size.Rscript $BedControlSort $BedControlSort.pdf
+	fi
 fi
 
 
@@ -322,7 +329,9 @@ if [ ! -s $OutBedpe2Sort ]; then
 else
 	echo "Info: using existing sorted merged BEDPE: $OutBedpe2Sort"
 fi
-
+if [ ! -s "$OutBedpe2Sort.pdf" ]; then
+	Rscript $RootDir/scripts/dist_bin_plot.insert.size.Rscript $OutBedpe2Sort $OutBedpe2Sort.pdf
+fi
 
 
 ### 3. MACS2
