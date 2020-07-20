@@ -335,7 +335,7 @@ for (( indnum=0; indnum < ${#PfxArr[@]}; indnum++ )); do
 		InFq2=$OutFq2
 		OutFq1="$opt_Dtrm/$OutPrefix.R1.trim.fq.gz"
 		OutFq2="$opt_Dtrm/$OutPrefix.R2.trim.fq.gz"
-		if RunTrimmomatic $InFq1 $InFq2 $TrimmomaticPath $TrimmomaticAdaptors $OutFq1 $OutFq2 $OutPrefix $opt_q $opt_l $opt_t; then
+		if RunTrimmomatic $InFq1 $InFq2 $opt_m $TrimmomaticAdaptors $OutFq1 $OutFq2 $OutPrefix $opt_q $opt_l $opt_t; then
 			echo "Info: trimmomatic successful: $idvlib"
 		else
 			echo "Info: trimmomatic error: $idvlib" >&2;
