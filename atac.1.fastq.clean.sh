@@ -138,7 +138,6 @@ opt_Dgal=''
 opt_Dtrm=''
 opt_t=1
 opt_c=''
-opt_m=''
 StepArr=(1 2 3)
 opt_l=70
 opt_q=15
@@ -156,7 +155,6 @@ while [ -n "$1" ]; do
     -D3) opt_Dtrm=$2;shift 2;;
     -t) opt_t=$2;shift 2;;
     -s) StepArr=($(echo $2 | tr ',' "\n"));shift 2;;
-    -m) opt_m=$2;shift 2;;
     -l) opt_l=$2;shift 2;;
     -q) opt_q=15;shift 2;;
     --) shift;break;;
@@ -190,10 +188,6 @@ fi
 CmdExists 'fastqc'
 if [ $? -ne 0 ]; then
 	echo "Error: CMD 'fastqc' is required but not found.  Aborting..." >&2 
-	exit 127
-fi
-if [ ! -s $opt_m ]; then
-	echo "Error: script 'trimmomatic-*.jar' is required but not found.  Aborting..." >&2 
 	exit 127
 fi
 CmdExists 'trim_galore'
@@ -238,7 +232,11 @@ for IndStep in ${StepArr[@]}; do
 done
 
 TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length 30 --trim1"
-TrimmomaticAdaptors="${opt_m%/*}/adapters/NexteraPE-PE.fa"
+if [ -z "$TRIMMOMATIC_ADAPTORS" ]; then
+	echo "Error: Please set TRIMMOMATIC_ADAPTORS to the folder where trimmomatics adaptors locate" >&2
+	exit 100
+fi
+TrimmomaticAdaptors="$TRIMMOMATIC_ADAPTORS/NexteraPE-PE.fa"
 if [ ! -s $TrimmomaticAdaptors ]; then
 	echo "Error: Trimmomatic adaptors not found: $TrimmomaticAdaptors" >&2
 	exit 100
@@ -248,7 +246,6 @@ echo "    FastQC DIR:          $opt_Dfqc"
 echo "    trim_galore DIR:     $opt_Dgal"
 echo "    trimmomatic DIR:     $opt_Dtrm"
 echo "    Trim_galore options: $trimgloreOptions"
-echo "    Trimmomatic path:    $opt_m"
 echo "    Trimmomatic adaptor: $TrimmomaticAdaptors"
 
 
@@ -335,7 +332,7 @@ for (( indnum=0; indnum < ${#PfxArr[@]}; indnum++ )); do
 		InFq2=$OutFq2
 		OutFq1="$opt_Dtrm/$OutPrefix.R1.trim.fq.gz"
 		OutFq2="$opt_Dtrm/$OutPrefix.R2.trim.fq.gz"
-		if RunTrimmomatic $InFq1 $InFq2 $opt_m $TrimmomaticAdaptors $OutFq1 $OutFq2 $OutPrefix $opt_q $opt_l $opt_t; then
+		if RunTrimmomatic2 $InFq1 $InFq2  $OutFq1 $OutFq2 $OutPrefix $TrimmomaticAdaptors $opt_q $opt_l $opt_t; then
 			echo "Info: trimmomatic successful: $idvlib"
 		else
 			echo "Info: trimmomatic error: $idvlib" >&2;
