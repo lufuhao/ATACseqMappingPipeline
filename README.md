@@ -26,6 +26,14 @@ RRID: [SCR_017558](https://scicrunch.org/resolver/RRID:SCR_017558)
 
 * trimmomatic
 
+    export TRIMMOMATIC_ROOT=${PROGPATH}/trimmomatic/v0.39/x86_64
+
+    export TRIMMOMATIC_ADAPTORS=${PROGPATH}/trimmomatic/v0.39/x86_64/adaptors
+
+    export TRIMMOMATIC_JAR=${PROGPATH}/trimmomatic/v0.39/x86_64/trimmomatic-0.39.jar
+
+    export CLASSPATH=${PROGPATH}/trimmomatic/v0.39/x86_64/trimmomatic-0.39.jar:$CLASSPATH
+
 * trim_galore
 
 * picard_tools
