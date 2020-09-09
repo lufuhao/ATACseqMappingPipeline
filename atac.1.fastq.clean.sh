@@ -56,7 +56,7 @@ Requirements:
     JAVA/JDK
     FuhaoBash_FastqMod
     Trimmomatic
-        TRIMMOMATIC_ADAPTORS: set to the adaptors folder in trimmomatic
+        TRIMMOMATIC_ADAPTERS: set to the adapters folder in trimmomatic
         CLASSPATH=path/to/trimmomatic.jar:\$CLASSPATH
             Add trimmomatic.jar to CLASSPATH
     Trim_Galore
@@ -232,13 +232,13 @@ for IndStep in ${StepArr[@]}; do
 done
 
 TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length 30 --trim1"
-if [ -z "$TRIMMOMATIC_ADAPTORS" ] || [ ! -d "$TRIMMOMATIC_ADAPTORS" ]; then
-	echo "Error: Please set TRIMMOMATIC_ADAPTORS to the folder where trimmomatics adaptors locate" >&2
+if [ -z "$TRIMMOMATIC_ADAPTERS" ] || [ ! -d "$TRIMMOMATIC_ADAPTERS" ]; then
+	echo "Error: Please set TRIMMOMATIC_ADAPTERS to the folder where trimmomatics adaptors locate" >&2
 	exit 100
 fi
-TrimmomaticAdaptors="$TRIMMOMATIC_ADAPTORS/NexteraPE-PE.fa"
-if [ ! -s $TrimmomaticAdaptors ]; then
-	echo "Error: Trimmomatic adaptors not found: $TrimmomaticAdaptors" >&2
+TrimmomaticAdapters="$TRIMMOMATIC_ADAPTERS/NexteraPE-PE.fa"
+if [ ! -s $TrimmomaticAdapters ]; then
+	echo "Error: Trimmomatic adaptors not found: $TrimmomaticAdapters" >&2
 	exit 100
 fi
 
@@ -246,7 +246,7 @@ echo "    FastQC DIR:          $opt_Dfqc"
 echo "    trim_galore DIR:     $opt_Dgal"
 echo "    trimmomatic DIR:     $opt_Dtrm"
 echo "    Trim_galore options: $trimgloreOptions"
-echo "    Trimmomatic adaptor: $TrimmomaticAdaptors"
+echo "    Trimmomatic adaptor: $TrimmomaticAdapters"
 
 
 
@@ -332,7 +332,7 @@ for (( indnum=0; indnum < ${#PfxArr[@]}; indnum++ )); do
 		InFq2=$OutFq2
 		OutFq1="$opt_Dtrm/$OutPrefix.R1.trim.fq.gz"
 		OutFq2="$opt_Dtrm/$OutPrefix.R2.trim.fq.gz"
-		if RunTrimmomatic2 $InFq1 $InFq2 $OutFq1 $OutFq2 $OutPrefix $TrimmomaticAdaptors $opt_q $opt_l $opt_t; then
+		if RunTrimmomatic2 $InFq1 $InFq2 $OutFq1 $OutFq2 $OutPrefix $TrimmomaticAdapters $opt_q $opt_l $opt_t; then
 			echo "Info: trimmomatic successful: $idvlib"
 		else
 			echo "Info: trimmomatic error: $idvlib" >&2;
