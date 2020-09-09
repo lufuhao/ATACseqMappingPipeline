@@ -47,7 +47,7 @@ cat<<HELP
 	
 $0 --- Brief Introduction
 	
-Version: 20190729
+Version: 20200909
 
 
 
@@ -55,9 +55,11 @@ Requirements:
     Linux: perl, echo
     JAVA/JDK
     FuhaoBash_FastqMod
-    trimmomatic
-    trim_galore
-    
+    Trimmomatic
+        TRIMMOMATIC_ADAPTORS: set to the adaptors folder in trimmomatic
+        CLASSPATH=path/to/trimmomatic.jar:\$CLASSPATH
+            Add trimmomatic.jar to CLASSPATH
+    Trim_Galore
 
 
 
@@ -86,7 +88,6 @@ Options:
                       Default: 1
   -s    <1,2,3>    to run which step
                       Default: 1,2,3
-  -m    <file>     trimmomatic path
   -l    <INT>      Minimum length to keep a trimmed reads
                       Default: 70
   -q    <INT>      Minimum quality to keep a trimmed reads
@@ -100,8 +101,7 @@ Example:
      -D1 /path/to/run/0.fastqc \
      -D2 /path/to/run/1.trim_galore \
      -D3 /path/to/run/2.trimmomatic \
-     -t 1 -s 1,2,3 -l 70 -q 15 \
-     -m /path/to/trimmomatic.jar
+     -t 1 -s 1,2,3 -l 70 -q 15
 
 
 Author:
@@ -209,7 +209,7 @@ if [ -z "$opt_Dgal" ]; then
 	opt_Dgal="$opt_Drun/1.trim_galore"
 fi
 if [ -z "$opt_Dtrm" ]; then
-	opt_Dtrm="$opt_Drun/2.trimmomatic"	
+	opt_Dtrm="$opt_Drun/2.trimmomatic"
 fi
 step1=0
 step2=0
@@ -232,7 +232,7 @@ for IndStep in ${StepArr[@]}; do
 done
 
 TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length 30 --trim1"
-if [ -z "$TRIMMOMATIC_ADAPTORS" ]; then
+if [ -z "$TRIMMOMATIC_ADAPTORS" ] || [ ! -d "$TRIMMOMATIC_ADAPTORS" ]; then
 	echo "Error: Please set TRIMMOMATIC_ADAPTORS to the folder where trimmomatics adaptors locate" >&2
 	exit 100
 fi
@@ -332,7 +332,7 @@ for (( indnum=0; indnum < ${#PfxArr[@]}; indnum++ )); do
 		InFq2=$OutFq2
 		OutFq1="$opt_Dtrm/$OutPrefix.R1.trim.fq.gz"
 		OutFq2="$opt_Dtrm/$OutPrefix.R2.trim.fq.gz"
-		if RunTrimmomatic2 $InFq1 $InFq2  $OutFq1 $OutFq2 $OutPrefix $TrimmomaticAdaptors $opt_q $opt_l $opt_t; then
+		if RunTrimmomatic2 $InFq1 $InFq2 $OutFq1 $OutFq2 $OutPrefix $TrimmomaticAdaptors $opt_q $opt_l $opt_t; then
 			echo "Info: trimmomatic successful: $idvlib"
 		else
 			echo "Info: trimmomatic error: $idvlib" >&2;
