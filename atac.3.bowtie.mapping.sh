@@ -52,11 +52,13 @@ Version: 20190718
 
 
 Requirements:
-	Linux: grep, cut, sort, echo, cat perl
-	samtools
-	bowtie
-	bam_filter_by_readname_file.pl
-	bam_restore_splited_coords.pl
+    Linux: grep, cut, sort, echo, cat perl
+    samtools
+    bowtie
+    picard
+        PICARD_JAR=/path/to/picard.jar
+    bam_filter_by_readname_file.pl
+    bam_restore_splited_coords.pl
 
 Descriptions:
   This script is used to map ATAC-seq fastqR1 and R2 to large genome
@@ -187,7 +189,10 @@ if [ $? -ne 0 ]; then
 	echo "Error: script 'bam_restore_splited_coords.pl' is required but not found.  Aborting..." >&2
 	exit 127
 fi
-
+if [ -z "" ]; then
+	echo "Error: PICARD_JAR Not set, please export PICARD_JAR=/path/to/picard.jar"
+	exit 127
+fi
 
 
 
@@ -430,7 +435,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	fi
 ###### MarkDuplicates
 	if [ ! -s $OutMerge5Rmdup ]; then
-		java  -Xmx30g -jar ${HOME}/local/picard/v1.108/x86_64/bin/MarkDuplicates.jar INPUT=$OutMerge4Reheader OUTPUT=$OutMerge5Rmdup REMOVE_DUPLICATES=TRUE METRICS_FILE=$OutPrefix.bowtie.clean.sort.exc.rmdup.metrix ASSUME_SORTED=TRUE VALIDATION_STRINGENCY=SILENT MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
+		java  -jar $PICARD_JAR INPUT=$OutMerge4Reheader OUTPUT=$OutMerge5Rmdup REMOVE_DUPLICATES=TRUE METRICS_FILE=$OutPrefix.bowtie.clean.sort.exc.rmdup.metrix ASSUME_SORTED=TRUE VALIDATION_STRINGENCY=SILENT MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
 		if [ $? -ne 0 ] || [ ! -s $OutMerge5Rmdup ]; then
 			echo "Error: rmdup error: $OutPrefix" >&2
 			exit 100
