@@ -47,7 +47,7 @@ cat<<HELP
 	
 $0 --- Brief Introduction
 	
-Version: 20200720
+Version: 20200914
 
 
 
@@ -186,7 +186,7 @@ Bampe2Bedpe () {
 
 #CmdExists 'macs2_bedpe_from_bampe.sh'
 #if [ $? -ne 0 ]; then
-if [ ! -s $RootDir/scripts/macs2_bedpe_from_bampe.sh ]
+if [ ! -s $RootDir/scripts/macs2_bedpe_from_bampe.sh ]; then
 	echo "Error: script '$RootDir/scripts/macs2_bedpe_from_bampe.sh' is required but not found.  Aborting..." >&2 
 	exit 127
 fi
