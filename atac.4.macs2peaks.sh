@@ -55,7 +55,7 @@ Requirements:
     Linux: perl, echo
     BEDtools
     bamaddrg
-    macs2_bedpe_from_bampe.sh [Included in script subfolder]
+    samtools [v0.1.20]
 
 
 
