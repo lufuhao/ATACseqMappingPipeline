@@ -189,7 +189,7 @@ if [ $? -ne 0 ]; then
 	echo "Error: script 'bam_restore_splited_coords.pl' is required but not found.  Aborting..." >&2
 	exit 127
 fi
-if [ -z "" ]; then
+if [ -z "$PICARD_JAR" ]; then
 	echo "Error: PICARD_JAR Not set, please export PICARD_JAR=/path/to/picard.jar"
 	exit 127
 fi
