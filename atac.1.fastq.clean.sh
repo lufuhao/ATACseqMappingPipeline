@@ -312,6 +312,7 @@ for (( indnum=0; indnum < ${#PfxArr[@]}; indnum++ )); do
 		InFq1=$fastqR1
 		InFq2=$fastqR2
 		if RunTrimGalore $InFq1 $InFq2 "$TrimgloreOptions" $opt_t $OutFq1 $OutFq2; then
+#trim_galore -q 25 --phred33 --length 25 -e 0.1 --stringency 4 -o $analysis_dir/clean
 			echo "Info: TrimGalore successful: $idvlib"
 			fastqR1=$OutFq1
 			fastqR2=$OutFq2
