@@ -55,7 +55,7 @@ Requirements:
     Linux: perl, echo
     BEDtools
     bamaddrg
-    samtools [v0.1.20]
+    samtools
 
 
 
@@ -166,10 +166,18 @@ Bampe2Bedpe () {
 	local BBsubinfo="FuhaoBash_BashMod(Bampe2Bedpe)"
 	
 	if [ ! -s "$BBbamout" ]; then
-		samtools sort -@ $opt_t -n $BBbamin ${BBbamout%.bam}
-		if [ $? -ne 0 ] || [ ! -s $BBbamout ]; then
-			echo "${BBsubinfo}Error: name sort error" >&2
-			exit 100
+		if [ $samtoolsVers -eq 0 ]; then
+			samtools sort -@ $opt_t -n $BBbamin ${BBbamout%.bam}
+			if [ $? -ne 0 ] || [ ! -s $BBbamout ]; then
+				echo "${BBsubinfo}Error: name sort error" >&2
+				exit 100
+			fi
+		elif [ $samtoolsVers -eq 1 ]; then
+			samtools sort -@ $opt_t -n -O BAM -o $BBbamout $BBbamin
+			if [ $? -ne 0 ] || [ ! -s $BBbamout ]; then
+				echo "${BBsubinfo}Error: name sort error" >&2
+				exit 100
+			fi
 		fi
 	fi
 	$RootDir/scripts/macs2_bedpe_from_bampe.sh -i $BBbamout -o $BBbedout
@@ -200,7 +208,12 @@ if [ $? -ne 0 ]; then
 	echo "Error: CMD 'bamaddrg' in PROGRAM 'bamaddrg' is required but not found.  Aborting..." >&2 
 	exit 127
 fi
-
+CmdExists 'samtools'
+if [ $? -ne 0 ]; then
+	echo "Error: CMD 'samtools' in PROGRAM 'SAMtools' is required but not found.  Aborting..." >&2 
+	exit 127
+fi
+samtoolsVers=$(samtools 2>&1 | grep ^'Version' | sed 's/^Version:\s\+//;s/\..*$//;')
 
 #################### Defaults #######################################
 if [ ! -z "$opt_g" ]; then

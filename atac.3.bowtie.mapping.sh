@@ -54,7 +54,7 @@ Version: 20200912
 Requirements:
     Linux: grep, cut, sort, echo, cat perl
     samtools
-    bowtie
+    bowtie/bowtie2
     picard
         PICARD_JAR=/path/to/picard.jar
     bam_filter_by_readname_file.pl
@@ -71,15 +71,17 @@ Options:
   -2    <Fq1,Fq2>  FastqR2 array, separated by comma
   -p    <Px1,Px2>  File ouput Prefix array, separated by comma
   -x    <Ix1,Ix2>  Index array, separated by comma
+  -b1              Using Bowtie for Mapping
+  -b2              Using Bowtie2 for mapping [default]
   -s    <BED>      BED file to restore splited chom coordinates
   -D1   <PATH>     Running Folder/Path
-  -D2   <PATH>     Folder/Path for bowtie mapping BAMs
+  -D2   <PATH>     Folder/Path for bowtie[2] mapping BAMs
   -D3   <PATH>     Folder/Path for Cleaning BAMs
   -exu  <FILE>     Chromosome Name to be excluded
                      Mitochondria and Chloroplast genomes
                      Must exclude reads mapped to these two naked DNAs
-  -t    <INT>      Num of threads; for samtools sort
-  -d    -----      delete temporary files
+  -t    <INT>      Num of threads;
+  -d    -----      Delete temporary files
 
 Example:
   $0 -1 In1.R1.Fq.gz,In2.R1.Fq.gz \
@@ -89,7 +91,7 @@ Example:
      -D2 /Path/to/run/5.mapping \
      -D3 /Path/to/run/8.merge \
      -exu /path/to/mit.cp.names \
-     -t 1
+     -t 1 -b2
  
 
 
@@ -129,6 +131,8 @@ ExcludeChromList=''
 opt_t=1
 opt_d=0
 opt_s=''
+opt_b1=0
+opt_b2=1
 #################### Parameters #####################################
 
 while [ -n "$1" ]; do
@@ -138,7 +142,9 @@ while [ -n "$1" ]; do
     -2) FastqR2Arr=($(echo $2 | tr ',' "\n"));shift 2;;
     -p) PrefixArr=($(echo $2 | tr ',' "\n"));shift 2;;
     -x) IndexArr=($(echo $2 | tr ',' "\n"));shift 2;;
-	-s) opt_s=$2;shift 2;;
+    -b1) opt_b1=1;opt_b2=0;shift 1;;
+    -b2) opt_b1=0;opt_b2=1;shift 1;;
+    -s) opt_s=$2;shift 2;;
     -D1) RunDir=$2;shift 2;;
     -D2) MappingDir=$2;shift 2;;
     -D3) CleanDir=$2; shift 2;;
@@ -174,6 +180,7 @@ if [ $? -ne 0 ]; then
 	echo "Error: CMD 'samtools' in PROGRAM 'SAMtools' is required but not found.  Aborting..." >&2 
 	exit 127
 fi
+samtoolsVers=$(samtools 2>&1 | grep ^'Version' | sed 's/^Version:\s\+//;s/\..*$//;')
 CmdExists 'bowtie'
 if [ $? -ne 0 ]; then
 	echo "Error: CMD 'bowtie' in PROGRAM 'bowtie' is required but not found.  Aborting..." >&2 
@@ -207,7 +214,20 @@ fi
 if [ -z "$CleanDir" ]; then
 	CleanDir="$RunDir/merge"
 fi
-
+opt_b=0
+mappingProg="unMap"
+if [ $opt_b1 -eq 0 ] && [ $opt_b2 -eq 1 ]; then
+	echo "### mapping using bowtie2"
+	opt_b=2
+	mappingProg="Bowtie2"
+elif [ $opt_b1 -eq 1 ] && [ $opt_b2 -eq 0 ]; then
+	echo "### mapping using bowtie"
+	opt_b=1
+	mappingProg="Bowtie"
+else
+	echo "Error: do not know using bowtie or bowtie2 for mapping" >&2
+	exit 100
+fi
 
 
 #################### Input and Output ###############################
@@ -268,13 +288,22 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	BamNum=1;
 	declare -a BAMarr=()
 	for IndIndex in ${IndexArr[@]}; do
-		OutBam="$MappingDir/$OutPrefix.bowtie.$BamNum.bam"
+		OutBam="$MappingDir/$OutPrefix.$mappingProg.$BamNum.bam"
 		if [ ! -s $OutBam ]; then
-			bowtie -q -p $opt_t -X 2000 --fr -m 1 --sam --chunkmbs 500 $IndIndex -1 $InFq1 -2 $InFq2 2> $OutPrefix.err | samtools view -b -S -h -F 12 - > $OutBam
-			if [ $? -ne 0 ]; then
-				echo "Error: BOWTIE running error1: $OutPrefix" >&2
-				echo "CMD used: bowtie -q -p $opt_t -X 2000 --fr -m 1 --sam --chunkmbs 500 $IndIndex -1 $InFq1 -2 $InFq2 2> $OutPrefix.err | samtools view -b -S -h -F 12 - > $OutBam" >&2
-				exit 100;
+			if [ $opt_b -eq 1 ]; then
+				bowtie -q -p $opt_t -X 2000 --fr -m 1 --sam --chunkmbs 500 $IndIndex -1 $InFq1 -2 $InFq2 2> $OutPrefix.err | samtools view -@ $opt_t -b -S -h -F 12 - > $OutBam
+				if [ $? -ne 0 ]; then
+					echo "Error: BOWTIE running error1: $OutPrefix" >&2
+					echo "CMD used: bowtie -q -p $opt_t -X 2000 --fr -m 1 --sam --chunkmbs 500 $IndIndex -1 $InFq1 -2 $InFq2 2> $OutPrefix.err | samtools view -@ $opt_t -b -S -h -F 12 - > $OutBam" >&2
+					exit 100;
+				fi
+			elif [ $opt_b -eq 2 ]; then
+				bowtie2 -q -p $opt_t -X 2000 --fr $IndIndex -1 $InFq1 -2 $InFq2 2> $OutPrefix.err | samtools view -@ $opt_t -b -S -h -F 12 - > $OutBam
+				if [ $? -ne 0 ]; then
+					echo "Error: BOWTIE2 running error1: $OutPrefix" >&2
+					echo "CMD used: bowtie -q -p $opt_t -X 2000 --fr $IndIndex -1 $InFq1 -2 $InFq2 2> $OutPrefix.err | samtools view -@ $opt_t -b -S -h -F 12 - > $OutBam" >&2
+					exit 100;
+				fi
 			fi
 		else
 			echo "Info: using existing BAM: $OutBam"
@@ -298,7 +327,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	fi
 
 ###### merge BAMs if more than 1 index
-	echo "Info: BOWTIE running succeswsful: $OutPrefix" >&2
+	echo "Info: $mappingProg running succeswsful: $OutPrefix" >&2
 	echo "Test: BAMs to be merged:  ${#BAMarr[@]}";
 	for InTestBam in ${BAMarr[@]}; do
 			echo "        $InTestBam"
@@ -308,7 +337,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 		OutMerge=${BAMarr[0]}
 	elif [ $NumBams -gt 1 ]; then
 		cd $CleanDir
-		OutMerge="$CleanDir/$OutPrefix.bowtie.bam"
+		OutMerge="$CleanDir/$OutPrefix.$mappingProg.bam"
 		
 		if [ ! -s $OutMerge ]; then
 			perl -e 'print "\@HD\tVN:1.0\tSO:unsorted\n"' > $CleanDir/$OutPrefix.reheader
@@ -317,15 +346,15 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 			fi
 			for indoutbam in ${BAMarr[@]}; do
 				echo "Retrieving header: BAM $indoutbam"
-				samtools view -H $indoutbam | grep ^'@SQ' >> $CleanDir/$OutPrefix.reheader2
+				samtools view -@ $opt_t -H $indoutbam | grep ^'@SQ' >> $CleanDir/$OutPrefix.reheader2
 			done
 			cat $CleanDir/$OutPrefix.reheader2 | sort -u | sort -k2,2 >> $CleanDir/$OutPrefix.reheader
 			if [ -e "$CleanDir/$OutPrefix.reheader2" ]; then
 				rm -rf $CleanDir/$OutPrefix.reheader2
 			fi
-			(cat $CleanDir/$OutPrefix.reheader; for indoutbam in ${BAMarr[@]}; do samtools view $indoutbam; done) | samtools view -S -b -h -F 12 - > $OutMerge
+			(cat $CleanDir/$OutPrefix.reheader; for indoutbam in ${BAMarr[@]}; do samtools view -@ $opt_t $indoutbam; done) | samtools view -@ $opt_t -S -b -h -F 12 - > $OutMerge
 			if [ $? -ne 0 ]; then
-				echo "Error: samtools merge failed: (cat $CleanDir/$OutPrefix.reheader; for indoutbam in ${BAMarr[@]}; do samtools view $indoutbam; done) | samtools view -S -b -h - > $OutMerge" >&2
+				echo "Error: samtools merge failed: (cat $CleanDir/$OutPrefix.reheader; for indoutbam in ${BAMarr[@]}; do samtools view -@ $opt_t $indoutbam; done) | samtools view -@ $opt_t -S -b -h - > $OutMerge" >&2
 				exit 100
 			fi
 		else
@@ -340,17 +369,17 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 
 	cd $CleanDir
 	echo "Info: merged BAMs: $OutMerge"
-	OutMerge1Clean="$CleanDir/$OutPrefix.bowtie.clean.bam"
+	OutMerge1Clean="$CleanDir/$OutPrefix.$mappingProg.clean.bam"
 	OutMerge1R2E="$CleanDir/$OutPrefix.reads2exclude"
-	OutMerge2Exclude="$CleanDir/$OutPrefix.bowtie.clean.exc.bam"
-	OutMerge2reCoord="$CleanDir/$OutPrefix.bowtie.clean.recoord.bam"
-	OutMerge3Sort="$CleanDir/$OutPrefix.bowtie.clean.exc.sort.bam"
-	OutMerge4Reheader="$CleanDir/$OutPrefix.bowtie.clean.exc.sort.reheader.bam"
-	OutMerge5Rmdup="$CleanDir/$OutPrefix.bowtie.clean.sort.exc.sort.reheader.rmdup.bam"
-###### Clean
+	OutMerge2Exclude="$CleanDir/$OutPrefix.$mappingProg.clean.exc.bam"
+	OutMerge2reCoord="$CleanDir/$OutPrefix.$mappingProg.clean.recoord.bam"
+	OutMerge3Sort="$CleanDir/$OutPrefix.$mappingProg.clean.exc.sort.bam"
+	OutMerge4Reheader="$CleanDir/$OutPrefix.$mappingProg.clean.exc.sort.reheader.bam"
+	OutMerge5Rmdup="$CleanDir/$OutPrefix.$mappingProg.clean.sort.exc.sort.reheader.rmdup.bam"
+###### Clean reads mapped to mtDNA and ctDNA
 	if [ -s $ExcludeChromList ]; then
 		if [ ! -s $OutMerge1Clean ]; then
-			samtools view -h -F 12 -f 2 $OutMerge | grep -v -f $ExcludeChromList | samtools view -b -h -S - > $OutMerge1Clean
+			samtools view -@ $opt_t -h -F 12 -f 2 $OutMerge | grep -v -f $ExcludeChromList | samtools view -@ $opt_t -b -h -S - > $OutMerge1Clean
 			if [ $? -ne 0 ]; then
 				echo "Error: paired error: $OutPrefix" >&2
 				exit 100
@@ -360,7 +389,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 			echo "Info: using existsing chromosome-excluded BAM: $OutMerge1Clean"
 		fi
 		if [ ! -s "$OutMerge1R2E" ]; then
-			samtools view -F 12 -f 2 $OutMerge | grep -f $ExcludeChromList | cut -f 1 | sort -u > $OutMerge1R2E
+			samtools view -@ $opt_t -F 12 -f 2 $OutMerge | grep -f $ExcludeChromList | cut -f 1 | sort -u > $OutMerge1R2E
 			if [ $? -ne 0 ] || [ ! -s "$OutMerge1R2E" ]; then
 				echo "Error: extract error: $OutPrefix" >&2
 				exit 100
@@ -409,10 +438,18 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	fi
 ### Sort
 	if [ ! -s $OutMerge3Sort ]; then
-		samtools sort -@ $opt_t $OutMerge2Exclude ${OutMerge3Sort%.bam}
-		if [ $? -ne 0 ] || [ ! -s $OutMerge3Sort ]; then
-			echo "Error: sort error: $OutPrefix" >&2
-			exit 100
+		if [ $samtoolsVers -eq 0 ]; then
+			samtools sort -@ $opt_t $OutMerge2Exclude ${OutMerge3Sort%.bam}
+			if [ $? -ne 0 ] || [ ! -s $OutMerge3Sort ]; then
+				echo "Error: sort error: $OutPrefix" >&2
+				exit 100
+			fi
+		elif [ $samtoolsVers -eq 1 ]; then
+			samtools sort -@ $opt_t -O BAM -o $OutMerge3Sort $OutMerge2Exclude 
+			if [ $? -ne 0 ] || [ ! -s $OutMerge3Sort ]; then
+				echo "Error: sort error: $OutPrefix" >&2
+				exit 100
+			fi
 		fi
 		TempFiles+=("$OutMerge3Sort");
 	else
@@ -420,7 +457,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	fi
 ###### remove @PG
 	if [ ! -s $OutMerge4Reheader ]; then
-		(samtools view -H $OutMerge3Sort | grep -v ^'@PG'; samtools view $OutMerge3Sort) | samtools view -h -S -b - > $OutMerge4Reheader
+		(samtools view -@ $opt_t -H $OutMerge3Sort | grep -v ^'@PG'; samtools view -@ $opt_t $OutMerge3Sort) | samtools view -@ $opt_t -h -S -b - > $OutMerge4Reheader
 		if [ $? -ne 0 ] || [ ! -s $OutMerge4Reheader ]; then
 			echo "Error: reheader error: $OutPrefix" >&2
 			exit 100
@@ -430,12 +467,12 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 		echo "Info: using existsing reheader BAM: $OutMerge3Sort"
 	fi
 	if [ ! -s "$OutMerge4Reheader.bai" ]; then
-		samtools index $OutMerge4Reheader
+		samtools index -@ $opt_t $OutMerge4Reheader
 		TempFiles+=("$OutMerge4Reheader");
 	fi
 ###### MarkDuplicates
 	if [ ! -s $OutMerge5Rmdup ]; then
-		java  -jar $PICARD_JAR MarkDuplicates INPUT=$OutMerge4Reheader OUTPUT=$OutMerge5Rmdup REMOVE_DUPLICATES=TRUE METRICS_FILE=$OutPrefix.bowtie.clean.sort.exc.rmdup.metrix ASSUME_SORTED=TRUE VALIDATION_STRINGENCY=SILENT MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
+		java  -jar $PICARD_JAR MarkDuplicates INPUT=$OutMerge4Reheader OUTPUT=$OutMerge5Rmdup REMOVE_DUPLICATES=TRUE METRICS_FILE=$OutPrefix.$mappingProg.clean.sort.exc.rmdup.metrix ASSUME_SORTED=TRUE VALIDATION_STRINGENCY=SILENT MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
 		if [ $? -ne 0 ] || [ ! -s $OutMerge5Rmdup ]; then
 			echo "Error: rmdup error: $OutPrefix" >&2
 			exit 100
