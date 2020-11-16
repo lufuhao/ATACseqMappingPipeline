@@ -301,7 +301,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 				bowtie2 -q -p $opt_t -X 2000 --fr $IndIndex -1 $InFq1 -2 $InFq2 2> $OutPrefix.err | samtools view -@ $opt_t -b -S -h -F 12 - > $OutBam
 				if [ $? -ne 0 ]; then
 					echo "Error: BOWTIE2 running error1: $OutPrefix" >&2
-					echo "CMD used: bowtie -q -p $opt_t -X 2000 --fr $IndIndex -1 $InFq1 -2 $InFq2 2> $OutPrefix.err | samtools view -@ $opt_t -b -S -h -F 12 - > $OutBam" >&2
+					echo "CMD used: bowtie -q -p $opt_t -X 2000 --fr -x $IndIndex -1 $InFq1 -2 $InFq2 2> $OutPrefix.err | samtools view -@ $opt_t -b -S -h -F 12 - > $OutBam" >&2
 					exit 100;
 				fi
 			fi
