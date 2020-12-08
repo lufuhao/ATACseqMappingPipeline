@@ -355,6 +355,10 @@ if [ ! -s $OutBedpe2Sort ]; then
 fi
 
 Macs2Options="--verbose 3 --format BEDPE -g $opt_g --bdg --keep-dup all --nomodel --shift -37 --extsize 73"
+#Macs2Options="--verbose 3 --format BEDPE -g $opt_g --bdg --keep-dup all --nomodel --shift -100 --extsize 200 -SPMR -n peak"
+### -B, --bdg    save extended fragment pileup, and local lambda tracks (two files) at every bp into a bedGraph file.
+### --SPMR       If True, MACS will SAVE signal per million reads for fragment pileup profiles. It won't interfere with computing pvalue/qvalue during peak calling, since internally MACS2 keeps using the raw pileup and scaling factors between larger and smaller dataset to calculate statistics measurements. If you plan to use the signal output in bedGraph to call peaks using bdgcmp and bdgpeakcall, you shouldn't use this option because you will end up with different results. However, this option is recommended for displaying normalized pileup tracks across many datasets. Require -B to be set. Default: False
+### -n NAME, --name NAME  Experiment name, which will be used to generate output file names. DEFAULT: "NA"
 if [ -s "$opt_c" ] && [ -s "$BedControlSort" ]; then
 	Macs2Options="$Macs2Options --control $BedControlSort"
 fi
@@ -414,6 +418,9 @@ for ((BedpeNum=0; BedpeNum<${#BedArr[@]};BedpeNum++)); do
 		fi
 	else
 		echo "Info: using existing sorted merged Peaks: $MacsMergedPeakSort"
+	fi
+	if [ ! -s $MacsPeakSort.FRiP ]; then
+		###
 	fi
 	if [ $opt_S -eq 0 ]; then
 		IntersectBed="$opt_o.bedtools.intersect.$BedpeNum.bed"
