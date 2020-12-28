@@ -421,6 +421,7 @@ for ((BedpeNum=0; BedpeNum<${#BedArr[@]};BedpeNum++)); do
 	fi
 	if [ ! -s $MacsPeakSort.FRiP ]; then
 		###
+		echo "Analyzing FRiP: this function not finish yet"
 	fi
 	if [ $opt_S -eq 0 ]; then
 		IntersectBed="$opt_o.bedtools.intersect.$BedpeNum.bed"
