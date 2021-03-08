@@ -320,17 +320,17 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 		((BamNum++));
 	done
 
-###### Cleaning
+###### Check
 	if [ $NumBams -eq 0 ] || [ $NumBams -ne ${#IndexArr[@]} ]; then
 		echo "Error: Invalid number of BAMs: Prefix $OutPrefix; Number Index: ${#IndexArr[@]}; Number BAMs: $NumBams" >&2
 		exit 100
 	fi
+	echo "Info: $mappingProg running successful: $OutPrefix" >&2
 
 ###### merge BAMs if more than 1 index
-	echo "Info: $mappingProg running succeswsful: $OutPrefix" >&2
 	echo "Test: BAMs to be merged:  ${#BAMarr[@]}";
 	for InTestBam in ${BAMarr[@]}; do
-			echo "        $InTestBam"
+		echo "        $InTestBam"
 	done
 	cd $CleanDir
 	if [ $NumBams -eq 1 ]; then
@@ -338,7 +338,6 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	elif [ $NumBams -gt 1 ]; then
 		cd $CleanDir
 		OutMerge="$CleanDir/$OutPrefix.$mappingProg.bam"
-		
 		if [ ! -s $OutMerge ]; then
 			perl -e 'print "\@HD\tVN:1.0\tSO:unsorted\n"' > $CleanDir/$OutPrefix.reheader
 			if [ -e "$CleanDir/$OutPrefix.reheader2" ]; then
@@ -367,6 +366,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 		exit 100;
 	fi
 
+###### Clean
 	cd $CleanDir
 	echo "Info: merged BAMs: $OutMerge"
 	OutMerge1Clean="$CleanDir/$OutPrefix.$mappingProg.clean.bam"
@@ -457,17 +457,35 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	fi
 ###### remove @PG
 	if [ ! -s $OutMerge4Reheader ]; then
-		(samtools view -@ $opt_t -H $OutMerge3Sort | grep -v ^'@PG'; samtools view -@ $opt_t $OutMerge3Sort) | samtools view -@ $opt_t -h -S -b - > $OutMerge4Reheader
-		if [ $? -ne 0 ] || [ ! -s $OutMerge4Reheader ]; then
-			echo "Error: reheader error: $OutPrefix" >&2
+		samtools view -@ $opt_t -H $OutMerge3Sort | grep -v ^'@PG' > $OutMerge3Sort.reheader
+		if [ $? -ne 0 ] || [ ! -s "$OutMerge3Sort.reheader" ]; then
+			echo "Error: extract reheader error: $OutPrefix" >&2
 			exit 100
+		fi
+		if [ $samtoolsVers -eq 0 ]; then
+			(cat $OutMerge3Sort.reheader; samtools view -@ $opt_t $OutMerge3Sort) | samtools view -@ $opt_t -h -S -b - > $OutMerge4Reheader
+			if [ $? -ne 0 ] || [ ! -s $OutMerge4Reheader ]; then
+				echo "Error: samtools v0 reheader error: $OutPrefix" >&2
+				exit 100
+			fi
+		elif [ $samtoolsVers -eq 1 ]; then
+			samtools reheader -P $OutMerge3Sort.reheader $OutMerge3Sort > $OutMerge4Reheader
+			if [ $? -ne 0 ] || [ ! -s $OutMerge4Reheader ]; then
+				echo "Error: samtools v1 reheader error: $OutPrefix" >&2
+				exit 100
+			fi
 		fi
 		TempFiles+=("$OutMerge4Reheader");
 	else
 		echo "Info: using existsing reheader BAM: $OutMerge3Sort"
 	fi
 	if [ ! -s "$OutMerge4Reheader.bai" ]; then
-		samtools index -@ $opt_t $OutMerge4Reheader
+		if [ $samtoolsVers -eq 0 ]; then
+			samtools index $OutMerge4Reheader
+		elif [ $samtoolsVers -eq 1 ]; then
+			samtools index -@ $opt_t $OutMerge4Reheader
+		fi
+		
 		TempFiles+=("$OutMerge4Reheader");
 	fi
 ###### MarkDuplicates
