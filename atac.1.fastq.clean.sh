@@ -301,38 +301,38 @@ for (( indnum=0; indnum < ${#PfxArr[@]}; indnum++ )); do
 
 
 ###Trim_glore
+	OutFq1="$opt_Dgal/$OutPrefix.R1.fq.gz"
+	OutFq2="$opt_Dgal/$OutPrefix.R2.fq.gz"
+	InFq1=$fastqR1
+	InFq2=$fastqR2
 	if [ $step2 -eq 1 ]; then
 		echo "### Step2: Trim_galore"
 		if [ ! -d $opt_Dgal ]; then
 			mkdir -p $opt_Dgal
 		fi
 		cd $opt_Dgal
-		OutFq1="$opt_Dgal/$OutPrefix.R1.fq.gz"
-		OutFq2="$opt_Dgal/$OutPrefix.R2.fq.gz"
-		InFq1=$fastqR1
-		InFq2=$fastqR2
 		if RunTrimGalore $InFq1 $InFq2 "$TrimgloreOptions" $opt_t $OutFq1 $OutFq2; then
 #trim_galore -q 25 --phred33 --length 25 -e 0.1 --stringency 4 -o $analysis_dir/clean
 			echo "Info: TrimGalore successful: $idvlib"
-			fastqR1=$OutFq1
-			fastqR2=$OutFq2
 		else
 			echo "Info: TrimGalore error: $idvlib" >&2;
 			exit 100
 		fi
 	fi
+	fastqR1=$OutFq1
+	fastqR2=$OutFq2
 
 ### Trimmomatic
+	InFq1=$OutFq1
+	InFq2=$OutFq2
+	OutFq1="$opt_Dtrm/$OutPrefix.R1.trim.fq.gz"
+	OutFq2="$opt_Dtrm/$OutPrefix.R2.trim.fq.gz"
 	if [ $step3 -eq 1 ]; then
 		echo "### Step3: trimmomatic"
 		if [ ! -d $opt_Dtrm ]; then
 			mkdir -p $opt_Dtrm
 		fi
 		cd $opt_Dtrm
-		InFq1=$OutFq1
-		InFq2=$OutFq2
-		OutFq1="$opt_Dtrm/$OutPrefix.R1.trim.fq.gz"
-		OutFq2="$opt_Dtrm/$OutPrefix.R2.trim.fq.gz"
 		if RunTrimmomatic2 $InFq1 $InFq2 $OutFq1 $OutFq2 $OutPrefix $TrimmomaticAdapters $opt_q $opt_l $opt_t; then
 			echo "Info: trimmomatic successful: $idvlib"
 		else
