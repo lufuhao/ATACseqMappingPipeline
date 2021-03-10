@@ -74,13 +74,13 @@ Descriptions:
 Options:
   -h    -------    Print this help message
   -i    <B1,B2>    Replicated BAM file list
-  -c    <ctrlB>    BAM control for naked DNA
+  -c    <ctrlB>    BAM control for naked DNA [Optional]
   -g    <SciNum>   Genome Size for MACS2
   -p    <p1,p2>    Output prefix for Replicates
   -o    <Pfx>      Output prefix
   -D    <Path>     Running Path
   -t    <INT>      Number of threads for samtools merge
-  -S    -------    Supress intersectBED step as sometime 
+  -S    -------    Suppress intersectBED step as sometime 
                      it fails due to chrom sort
 
 
