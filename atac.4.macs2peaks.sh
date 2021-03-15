@@ -56,6 +56,7 @@ Requirements:
     BEDtools
     bamaddrg
     samtools
+    Rscript
 
 
 
