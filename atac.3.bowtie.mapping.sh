@@ -345,15 +345,15 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 			fi
 			for indoutbam in ${BAMarr[@]}; do
 				echo "Retrieving header: BAM $indoutbam"
-				samtools view -@ $opt_t -H $indoutbam | grep ^'@SQ' >> $CleanDir/$OutPrefix.reheader2
+				samtools view -H $indoutbam | grep ^'@SQ' >> $CleanDir/$OutPrefix.reheader2
 			done
 			cat $CleanDir/$OutPrefix.reheader2 | sort -u | sort -k2,2 >> $CleanDir/$OutPrefix.reheader
 			if [ -e "$CleanDir/$OutPrefix.reheader2" ]; then
 				rm -rf $CleanDir/$OutPrefix.reheader2
 			fi
-			(cat $CleanDir/$OutPrefix.reheader; for indoutbam in ${BAMarr[@]}; do samtools view -@ $opt_t $indoutbam; done) | samtools view -@ $opt_t -S -b -h -F 12 - > $OutMerge
+			(cat $CleanDir/$OutPrefix.reheader; for indoutbam in ${BAMarr[@]}; do samtools view $indoutbam; done) | samtools view -@ $opt_t -S -b -h -F 12 - > $OutMerge
 			if [ $? -ne 0 ]; then
-				echo "Error: samtools merge failed: (cat $CleanDir/$OutPrefix.reheader; for indoutbam in ${BAMarr[@]}; do samtools view -@ $opt_t $indoutbam; done) | samtools view -@ $opt_t -S -b -h - > $OutMerge" >&2
+				echo "Error: samtools merge failed: (cat $CleanDir/$OutPrefix.reheader; for indoutbam in ${BAMarr[@]}; do samtools view $indoutbam; done) | samtools view -@ $opt_t -S -b -h - > $OutMerge" >&2
 				exit 100
 			fi
 		else
@@ -457,13 +457,13 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	fi
 ###### remove @PG
 	if [ ! -s $OutMerge4Reheader ]; then
-		samtools view -@ $opt_t -H $OutMerge3Sort | grep -v ^'@PG' > $OutMerge3Sort.reheader
+		samtools view -H $OutMerge3Sort | grep -v ^'@PG' > $OutMerge3Sort.reheader
 		if [ $? -ne 0 ] || [ ! -s "$OutMerge3Sort.reheader" ]; then
 			echo "Error: extract reheader error: $OutPrefix" >&2
 			exit 100
 		fi
 		if [ $samtoolsVers -eq 0 ]; then
-			(cat $OutMerge3Sort.reheader; samtools view -@ $opt_t $OutMerge3Sort) | samtools view -@ $opt_t -h -S -b - > $OutMerge4Reheader
+			(cat $OutMerge3Sort.reheader; samtools view $OutMerge3Sort) | samtools view -@ $opt_t -h -S -b - > $OutMerge4Reheader
 			if [ $? -ne 0 ] || [ ! -s $OutMerge4Reheader ]; then
 				echo "Error: samtools v0 reheader error: $OutPrefix" >&2
 				exit 100
@@ -490,7 +490,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	fi
 ###### MarkDuplicates
 	if [ ! -s $OutMerge5Rmdup ]; then
-		java  -jar $PICARD_JAR MarkDuplicates --INPUT $OutMerge4Reheader --OUTPUT $OutMerge5Rmdup --REMOVE_DUPLICATES TRUE --METRICS_FILE $OutPrefix.$mappingProg.clean.sort.exc.rmdup.metrix --ASSUME_SORT_ORDER coordinate --VALIDATION_STRINGENCY SILENT --MAX_FILE_HANDLES_FOR_READ_ENDS_MAP 1000
+		java  -jar $PICARD_JAR MarkDuplicates -I $OutMerge4Reheader -O $OutMerge5Rmdup --REMOVE_DUPLICATES true -M $OutPrefix.$mappingProg.clean.sort.exc.rmdup.metrix -ASO coordinate --VALIDATION_STRINGENCY SILENT -MAX_FILE_HANDLES 1000
 		if [ $? -ne 0 ] || [ ! -s $OutMerge5Rmdup ]; then
 			echo "Error: rmdup error: $OutPrefix" >&2
 			exit 100
