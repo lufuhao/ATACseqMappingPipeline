@@ -490,7 +490,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	fi
 ###### MarkDuplicates
 	if [ ! -s $OutMerge5Rmdup ]; then
-		java  -jar $PICARD_JAR MarkDuplicates -I $OutMerge4Reheader -O $OutMerge5Rmdup --REMOVE_DUPLICATES true -M $OutPrefix.$mappingProg.clean.sort.exc.rmdup.metrix -ASO coordinate --VALIDATION_STRINGENCY SILENT -MAX_FILE_HANDLES 1000
+		java  -jar $PICARD_JAR MarkDuplicates --INPUT $OutMerge4Reheader --OUTPUT $OutMerge5Rmdup --REMOVE_DUPLICATES TRUE --METRICS_FILE $OutPrefix.$mappingProg.clean.sort.exc.rmdup.metrix --ASSUME_SORT_ORDER coordinate --VALIDATION_STRINGENCY SILENT --MAX_FILE_HANDLES_FOR_READ_ENDS_MAP 1000
 		if [ $? -ne 0 ] || [ ! -s $OutMerge5Rmdup ]; then
 			echo "Error: rmdup error: $OutPrefix" >&2
 			exit 100
