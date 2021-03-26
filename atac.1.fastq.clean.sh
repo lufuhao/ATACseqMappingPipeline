@@ -231,7 +231,7 @@ for IndStep in ${StepArr[@]}; do
 	fi
 done
 
-TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length 30 --trim1"
+TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length $opt_l --trim1"
 if [ -z "$TRIMMOMATIC_ADAPTERS" ] || [ ! -d "$TRIMMOMATIC_ADAPTERS" ]; then
 	echo "Error: Please set TRIMMOMATIC_ADAPTERS to the folder where trimmomatics adaptors locate" >&2
 	exit 100
