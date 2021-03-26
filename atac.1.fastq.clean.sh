@@ -343,3 +343,5 @@ for (( indnum=0; indnum < ${#PfxArr[@]}; indnum++ )); do
 done
 
 echo "### $ProgName finished"
+
+exit 0
