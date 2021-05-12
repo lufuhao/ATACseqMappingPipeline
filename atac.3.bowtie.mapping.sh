@@ -391,7 +391,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 		if [ ! -s "$OutMerge1R2E" ]; then
 			samtools view -@ $opt_t -F 12 -f 2 $OutMerge | grep -f $ExcludeChromList | cut -f 1 | sort -u > $OutMerge1R2E
 			if [ $? -ne 0 ] || [ ! -s "$OutMerge1R2E" ]; then
-				echo "Error: extract error: $OutPrefix" >&2
+				echo "Error: Mt & Ct reads extract error: $OutPrefix" >&2
 				exit 100
 			fi
 			TempFiles+=("$OutMerge1R2E");
