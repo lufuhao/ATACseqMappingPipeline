@@ -372,10 +372,10 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	OutMerge1Clean="$CleanDir/$OutPrefix.$mappingProg.clean.bam"
 	OutMerge1R2E="$CleanDir/$OutPrefix.reads2exclude"
 	OutMerge2Exclude="$CleanDir/$OutPrefix.$mappingProg.clean.exc.bam"
-	OutMerge2reCoord="$CleanDir/$OutPrefix.$mappingProg.clean.recoord.bam"
 	OutMerge3Sort="$CleanDir/$OutPrefix.$mappingProg.clean.exc.sort.bam"
 	OutMerge4Reheader="$CleanDir/$OutPrefix.$mappingProg.clean.exc.sort.reheader.bam"
 	OutMerge5Rmdup="$CleanDir/$OutPrefix.$mappingProg.clean.sort.exc.sort.reheader.rmdup.bam"
+	OutMerge6reCoord="$CleanDir/$OutPrefix.$mappingProg.clean.sort.exc.sort.reheader.rmdup.recoord.bam"
 ###### Clean reads mapped to mtDNA and ctDNA
 	if [ -s $ExcludeChromList ]; then
 		if [ ! -s $OutMerge1Clean ]; then
@@ -415,28 +415,6 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	if [ ! -s "$OutMerge2Exclude" ]; then
 		echo "Error: BAMs after excluding reads not exists: $OutMerge2Exclude" >&2
 		exit 100
-	fi
-### recoordinate
-	if [ ! -z "$opt_s" ]; then
-		echo "Info: re-calculate BAM coordinates: $OutMerge2Exclude using BED: $opt_s"
-		if [ -s "$opt_s" ]; then
-			if [ ! -s $OutMerge2reCoord ]; then
-				bam_restore_splited_coords.pl $OutMerge2Exclude $opt_s $OutMerge2reCoord
-				if [ $? -ne 0 ] || [ ! -s $OutMerge2reCoord ]; then
-					echo "Error: recoordinate failed" >&2
-					echo "    CMD: bam_restore_splited_coords.pl $OutMerge2Exclude $opt_s $OutMerge2reCoord"
-					exit 100
-				fi
-			else
-				echo "Info: using existsing re-coordinated BAMs: $OutMerge2reCoord"
-			fi
-			OutMerge2Exclude="$OutMerge2reCoord"
-		else
-			echo "Error: invalid BED file to recoordinate BAM: -s $opt_s" >&2
-			exit 100
-		fi
-	else
-		echo "Info: no BED file provided by -s to correct BAM coordinates, skipping..."
 	fi
 ### Sort
 	if [ ! -s $OutMerge3Sort ]; then
@@ -485,7 +463,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 		if [ $samtoolsVers -eq 0 ]; then
 			samtools index $OutMerge4Reheader
 		elif [ $samtoolsVers -eq 1 ]; then
-			samtools index -@ $opt_t $OutMerge4Reheader
+			samtools index -c -@ $opt_t $OutMerge4Reheader
 		fi
 		
 		TempFiles+=("$OutMerge4Reheader");
@@ -501,7 +479,27 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 	else
 		echo "Info: using existsing deduplicated BAM: $OutMerge3Sort"
 	fi
-
+### recoordinate
+	if [ ! -z "$opt_s" ]; then
+		echo "Info: re-calculate BAM coordinates: $OutMerge5Rmdup using BED: $opt_s"
+		if [ -s "$opt_s" ]; then
+			if [ ! -s $OutMerge6reCoord ]; then
+				bam_restore_splited_coords.pl $OutMerge5Rmdup $opt_s $OutMerge6reCoord
+				if [ $? -ne 0 ] || [ ! -s $OutMerge6reCoord ]; then
+					echo "Error: recoordinate failed" >&2
+					echo "    CMD: bam_restore_splited_coords.pl $OutMerge5Rmdup $opt_s $OutMerge6reCoord"
+					exit 100
+				fi
+			else
+				echo "Info: using existsing re-coordinated BAMs: $OutMerge6reCoord"
+			fi
+		else
+			echo "Error: invalid BED file to recoordinate BAM: -s $opt_s" >&2
+			exit 100
+		fi
+	else
+		echo "Info: no BED file provided by -s to correct BAM coordinates, skipping..."
+	fi
 	echo "##########################END###########################";
 	echo "##########################END###########################" >&2
 done
