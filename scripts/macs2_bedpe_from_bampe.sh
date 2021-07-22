@@ -148,7 +148,7 @@ else
 fi
 
 if [ ! -s "$opt_o" ]; then
-	perl -lane 'if ($F[0] ne $F[3]) {print STDERR "Warnings: read pairs mapped to different chroms: $_"; next;} if ($F[8] eq "+" and $F[9] eq "-") {$F[1]+=4;$F[5]-=5; print "$F[0]\t$F[1]\t$F[5]";}elsif($F[8] eq "-" and $F[9] eq "+"){$F[4]+=4;$F[2]-=5; print "$F[0]\t$F[4]\t$F[2]";}else {print STDERR "Warnings: invalid line: $_";}' $opt_o.bamtobed | sort -k1,1 -k2,2n -k3,3n > $opt_o
+	perl -lane 'if ($F[0] ne $F[3]) {print STDERR "Warnings: read pairs mapped to different chroms: $_"; next;} if ($F[8] eq "+" and $F[9] eq "-") {$F[1]+=4;$F[5]-=5; print "$F[0]\t$F[1]\t$F[5]";}elsif($F[8] eq "-" and $F[9] eq "+"){$F[4]+=4;$F[2]-=5; print "$F[0]\t$F[4]\t$F[2]";}else {print STDERR "Warnings: invalid line: $_";}' $opt_o.bamtobed | sort -k1,1 -k2,2n -k3,3n > $opt_o 2> $opt_o.log
 	if [ $? -ne 0 ] || [ ! -s $opt_o ]; then
 		echo "Step(2/2)Error: $ProgramName error" >&2
 		exit 100

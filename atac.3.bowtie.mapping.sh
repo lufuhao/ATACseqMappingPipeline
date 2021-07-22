@@ -386,7 +386,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 			fi
 			TempFiles+=("$OutMerge1Clean");
 		else
-			echo "Info: using existsing chromosome-excluded BAM: $OutMerge1Clean"
+			echo "Info: using existing chromosome-excluded BAM: $OutMerge1Clean"
 		fi
 		if [ ! -s "$OutMerge1R2E" ]; then
 			samtools view -@ $opt_t -F 12 -f 2 $OutMerge | grep -f $ExcludeChromList | cut -f 1 | sort -u > $OutMerge1R2E
@@ -435,6 +435,8 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 			echo "Error: invalid BED file to recoordinate BAM: -s $opt_s" >&2
 			exit 100
 		fi
+	else
+		echo "Info: no BED file provided by -s to correct BAM coordinates, skipping..."
 	fi
 ### Sort
 	if [ ! -s $OutMerge3Sort ]; then
@@ -495,6 +497,7 @@ for ((IndNum=0;IndNum<${#PrefixArr[@]};IndNum++));do
 			echo "Error: rmdup error: $OutPrefix" >&2
 			exit 100
 		fi
+		rm "$OutPrefix.$mappingProg.clean.sort.exc.rmdup.metrix" >/dev/null 2>&1
 	else
 		echo "Info: using existsing deduplicated BAM: $OutMerge3Sort"
 	fi
