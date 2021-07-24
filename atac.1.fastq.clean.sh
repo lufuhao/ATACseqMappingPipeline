@@ -92,7 +92,10 @@ Options:
                       Default: 70
   -q    <INT>      Minimum quality to keep a trimmed reads
                       Default: 15
-
+  -opt  <STR>      Trim_Galore option, default:
+                      '--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --trim1'
+  -adp  <STR>      Trimmomatic Adaptors file in full path, default:
+                      '\$TRIMMOMATIC_ADAPTERS/NexteraPE-PE.fa'
 
 Example:
   $0 -1 Fq1.R1.gz,Fq2.R1.gz -2 Fq1.R2.gz,Fq2.R2.gz \
@@ -141,6 +144,8 @@ opt_c=''
 StepArr=(1 2 3)
 opt_l=70
 opt_q=15
+opt_TGopt=""
+opt_TGadp=""
 
 #################### Parameters #####################################
 while [ -n "$1" ]; do
@@ -157,6 +162,8 @@ while [ -n "$1" ]; do
     -s) StepArr=($(echo $2 | tr ',' "\n"));shift 2;;
     -l) opt_l=$2;shift 2;;
     -q) opt_q=15;shift 2;;
+    -opt) opt_TGopt=$2;shift 2;;
+    -adp) opt_TGadp=$2;shift 2;;
     --) shift;break;;
     -*) echo "Error: no such option $1. -h for help" > /dev/stderr;exit 1;;
     *) break;;
@@ -231,12 +238,20 @@ for IndStep in ${StepArr[@]}; do
 	fi
 done
 
-TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length $opt_l --trim1"
-if [ -z "$TRIMMOMATIC_ADAPTERS" ] || [ ! -d "$TRIMMOMATIC_ADAPTERS" ]; then
-	echo "Error: Please set TRIMMOMATIC_ADAPTERS to the folder where trimmomatics adaptors locate" >&2
-	exit 100
+if [ -z "$opt_TGopt" ]; then
+	TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length $opt_l --trim1"
+else
+	TrimgloreOptions = "${opt_TGopt} --length ${opt_l}"
 fi
-TrimmomaticAdapters="$TRIMMOMATIC_ADAPTERS/NexteraPE-PE.fa"
+if [ -z "$opt_TGadp" ]; then
+	if [ -z "$TRIMMOMATIC_ADAPTERS" ] || [ ! -d "$TRIMMOMATIC_ADAPTERS" ]; then
+		echo "Error: Please set TRIMMOMATIC_ADAPTERS to the folder where trimmomatics adaptors locate" >&2
+		exit 100
+	fi
+	TrimmomaticAdapters="$TRIMMOMATIC_ADAPTERS/NexteraPE-PE.fa"
+else
+	TrimmomaticAdapters=$opt_TGadp
+fi
 if [ ! -s $TrimmomaticAdapters ]; then
 	echo "Error: Trimmomatic adaptors not found: $TrimmomaticAdapters" >&2
 	exit 100
