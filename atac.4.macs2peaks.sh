@@ -47,7 +47,7 @@ cat<<HELP
 	
 $0 --- Brief Introduction
 	
-Version: 20200914
+Version: 20210730
 
 
 
@@ -57,6 +57,7 @@ Requirements:
     bamaddrg
     samtools
     Rscript
+    BEDOPS
 
 
 
@@ -80,6 +81,7 @@ Options:
   -p    <p1,p2>    Output prefix for Replicates
   -o    <Pfx>      Output prefix
   -D    <Path>     Running Path
+  -m    <Str>      Option --max-mem for sort-bed, default 2G
   -t    <INT>      Number of threads for samtools merge
   -S    -------    Suppress intersectBED step as sometime 
                      it fails due to chrom sort
@@ -121,6 +123,7 @@ opt_D=$PWD
 opt_t=1
 opt_c=''
 opt_S=0;
+opt_m="2G";
 
 
 #################### Parameters #####################################
@@ -133,8 +136,9 @@ while [ -n "$1" ]; do
     -p) RepPfxArr=($(echo $2 | tr ',' "\n"));shift 2;;
     -o) opt_o=$2;shift 2;;
     -D) opt_D=$2;shift 2;;
+    -m) opt_m=$2;shift 2;;
     -t) opt_t=$2;shift 2;;
-	-S) opt_S=1;shift 1;;
+    -S) opt_S=1;shift 1;;
     --) shift;break;;
     -*) echo "error: no such option $1. -h for help" > /dev/stderr;exit 1;;
     *) break;;
@@ -189,6 +193,53 @@ Bampe2Bedpe () {
 	
 	return 0;
 }
+bedSort () {
+	local BSin=$1
+	local BSout=$2
+	local BStmpdir=$3
+	
+	local BStest=0
+	
+	if [ -z "$BStmpdir" ]; then
+		BStmpdir=$PWD
+	fi
+	while [ $BStest -eq 0 ]; do
+		local BSrand=$(cat /dev/urandom | LC_CTYPE=C tr -dc '0-9a-zA-Z' | fold -w 8 | head -n 1);
+		BStmpPath="$BStmpdir/tmp_${BSrand}"
+		if [ ! -d "$BStmpPath" ]; then
+			BStest=1;
+			break
+		fi
+	done
+	if [ -z "$BStmpPath" ]; then
+		BStmpPath=$PWD
+	fi
+	
+	sort-bed --max-mem $opt_m --tmpdir $BStmpPath $BSin > $BSout
+	if [ $? -ne 0 ] || [ ! -s "$BSout" ]; then
+		echo "Error: sort-bed error" >&2
+		echo "CMDs: sort-bed --max-mem $opt_m --tmpdir $BStmpPath $BSin > $BSout" >&2
+	fi
+	
+	rm -rf $BStmpPath > /dev/null 2>&1
+	
+	return 0
+}
+bedSort2 () {
+	local BSin=$1
+	local BSout=$2
+	
+	sort -k1,1 -k2,2n -k3,3n $BSin > $BSout
+	if [ $? -ne 0 ] || [ $ -s $BSout ]; then
+		echo "Error: BED sort 2 error" >&2
+		echo "CMD: sort -k1,1 -k2,2n -k3,3n $BSin > $BSout" >&2
+		exit 100
+	fi
+	
+	return 0
+}
+#	
+
 
 
 #################### Command test ###################################
@@ -215,6 +266,11 @@ if [ $? -ne 0 ]; then
 	exit 127
 fi
 samtoolsVers=$(samtools 2>&1 | grep ^'Version' | sed 's/^Version:\s\+//;s/\..*$//;')
+CmdExists 'sort-bed'
+if [ $? -ne 0 ]; then
+	echo "Error: CMD 'sort-bed' in PROGRAM 'BEDOPS' is required but not found.  Aborting..." >&2 
+	exit 127
+fi
 
 #################### Defaults #######################################
 if [ ! -z "$opt_g" ]; then
@@ -265,12 +321,8 @@ for ((BamNum=0;BamNum < ${#BAMInArr[@]};BamNum++)); do
 	if [ ! -s $BedSort ]; then
 		echo "Info : generate sorted BEDPE: ${BAMInArr[$BamNum]}"
 		echo "Info : generate sorted BEDPE: ${BAMInArr[$BamNum]}" >&2
-		echo "      CMD: sort -k1,1 -k2,2n -k3,3n $BedOut > $BedSort"
-		sort -k1,1 -k2,2n -k3,3n $BedOut > $BedSort
-		if [ ! -s $BedSort ]; then
-			echo "Error: BEDPE sort failed: $BedSort" >&2
-			exit 100
-		fi
+		bedSort $BedOut $BedSort $PWD
+#		bedSort2 $BedOut $BedSort"
 	else
 		echo "Info: using existing sorted BEDPE: $BedSort"
 	fi
@@ -300,13 +352,9 @@ if [ -s "$opt_c" ]; then
 	
 	if [ ! -s "$BedControlSort" ]; then
 		echo "Info : generate CONTROL sorted BEDPE: $opt_c"
-		echo "Info : generate sorted BEDPE: $opt_c" >&2
-		echo "     CMD: sort -k1,1 -k2,2n -k3,3n $BedControl > $BedControlSort"
-		sort -k1,1 -k2,2n -k3,3n $BedControl > $BedControlSort;
-		if [ ! -s $BedControlSort ]; then
-			echo "Error: BEDPE sort failed: $BedControlSort" >&2
-			exit 100;
-		fi
+		echo "Info : generate CONTROL sorted BEDPE: $opt_c" >&2
+		bedSort "$BedControl" "$BedControlSort" "$PWD"
+#		bedSort2 $BedControl $BedControlSort
 	else
 		echo "Info: using existing control sorted BEDPE: $BedControlSort"
 	fi
@@ -334,12 +382,9 @@ else
 fi
 if [ ! -s $OutBedpe2Sort ]; then
 	echo "Info: sorting merged BEDPE"
-	echo "    CMD: sort -k1,1 -k2,2n -k3,3n $OutBedpe1Merge > $OutBedpe2Sort"
-	sort -k1,1 -k2,2n -k3,3n $OutBedpe1Merge > $OutBedpe2Sort
-	if [ $? -ne 0 ] || [ ! -s $OutBedpe2Sort ]; then
-		echo "Error: BEDPE sort failed: $OutBedpe2Sort" >&2
-		exit 100
-	fi
+	echo "Info: sorting merged BEDPE" >&2
+	bedSort "$OutBedpe1Merge" "$OutBedpe2Sort" "$PWD"
+#	bedSort2 $OutBedpe1Merge $OutBedpe2Sort"
 else
 	echo "Info: using existing sorted merged BEDPE: $OutBedpe2Sort"
 fi
@@ -379,8 +424,9 @@ fi
 MacsMergedPeakSort="$opt_D/$opt_o/${opt_o}_peaks.narrowPeak.sorted.bed"
 if [ ! -s $MacsMergedPeakSort ]; then
 	echo "Info: sorting peaks for merged BEDPE: $MacsMergedPeaks"
-	echo "      CMD: sort -k1,1 -k2,2n -k3,3n $MacsMergedPeaks > $MacsMergedPeakSort"
-	sort -k1,1 -k2,2n -k3,3n $MacsMergedPeaks > $MacsMergedPeakSort
+	echo "Info: sorting peaks for merged BEDPE: $MacsMergedPeaks" >&2
+	bedSort "$MacsMergedPeaks" "$MacsMergedPeakSort" "$PWD"
+#	bedSort2 $MacsMergedPeaks $MacsMergedPeakSort
 else
 	echo "Info: using existing sorted merged Peaks: $MacsMergedPeakSort"
 fi
@@ -410,13 +456,8 @@ for ((BedpeNum=0; BedpeNum<${#BedArr[@]};BedpeNum++)); do
 	fi
 	if [ ! -s $MacsPeakSort ]; then
 		echo "Info: sorting peaks for BEDPE: $MacsPeaks"
-		echo "      CMD: sort -k1,1 -k2,2n -k3,3n $MacsPeaks > $MacsPeakSort"
-		sort -k1,1 -k2,2n -k3,3n $MacsPeaks > $MacsPeakSort
-		if [ $? -ne 0 ] || [ ! -s $MacsPeakSort ]; then
-			echo "Error: Peak sorting error: ${RepPfxArr[$BedpeNum]}" >&2
-			echo "     CMD: sort -k1,1 -k2,2n -k3,3n $MacsPeaks > $MacsPeakSort" >&2
-			exit 100
-		fi
+		bedSort "$MacsPeaks" "$MacsPeakSort" "$PWD"
+#		bedSort2 $MacsPeaks $MacsPeakSort
 	else
 		echo "Info: using existing sorted merged Peaks: $MacsMergedPeakSort"
 	fi
