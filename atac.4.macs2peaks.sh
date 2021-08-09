@@ -47,7 +47,7 @@ cat<<HELP
 	
 $0 --- Brief Introduction
 	
-Version: 20210730
+Version: 20210809
 
 
 
@@ -68,7 +68,7 @@ Descriptions:
     3. convert BAM to BED by 'bedtools bamtobed'
     4. BAMPE to BEDPE, and adjust 9bp for ATAC-seq
             Forward strand +4 and reverse -5
-    5. MACS2 to call peaks
+    5. MACS2/3 to call peaks
     6. BEDtools intersact BEDs to get consensus
 
 
@@ -77,19 +77,21 @@ Options:
   -h    -------    Print this help message
   -i    <B1,B2>    Replicated BAM file list
   -c    <ctrlB>    BAM control for naked DNA [Optional]
-  -g    <SciNum>   Genome Size for MACS2
+  -g    <SciNum>   Genome Size for MACS
   -p    <p1,p2>    Output prefix for Replicates
   -o    <Pfx>      Output prefix
   -D    <Path>     Running Path
   -m    <Str>      Option --max-mem for sort-bed, default 2G
-  -t    <INT>      Number of threads for samtools merge
+  -t    <INT>      Number of threads for samtools merge; default: 1
   -S    -------    Suppress intersectBED step as sometime 
                      it fails due to chrom sort
+  -macs <2/3>      Use MACS2/MACS3 to call ATAC peaks; default: 3
+  
 
 
 Example:
   $0 -i In1.bam,In2.bam -g 1.5e10  -p In1,In2 -o MyOut \
-     -D /path.to/run -t 1
+     -D /path/to/run -t 1
 
 
 
@@ -124,7 +126,8 @@ opt_t=1
 opt_c=''
 opt_S=0;
 opt_m="2G";
-
+opt_macs_vers=3;
+tmpRunDir=''
 
 #################### Parameters #####################################
 while [ -n "$1" ]; do
@@ -139,6 +142,7 @@ while [ -n "$1" ]; do
     -m) opt_m=$2;shift 2;;
     -t) opt_t=$2;shift 2;;
     -S) opt_S=1;shift 1;;
+    -macs) opt_macs_vers=$2;shift 2;;
     --) shift;break;;
     -*) echo "error: no such option $1. -h for help" > /dev/stderr;exit 1;;
     *) break;;
@@ -161,7 +165,7 @@ CmdExists () {
 ### Name-sort BAM and convert BAMPE to BEDPE, apply 9 bp shift for ATAC
 ### Bampe2Bedpe (in.bam, out.namesort.bam, out.bed)
 ### Global: numthreads
-### Program: macs2_bedpe_from_bampe.sh
+### Program: macs_bedpe_from_bampe.sh
 ### Output: 
 Bampe2Bedpe () {
 	local BBbamin=$1;
@@ -185,7 +189,7 @@ Bampe2Bedpe () {
 			fi
 		fi
 	fi
-	$RootDir/scripts/macs2_bedpe_from_bampe.sh -i $BBbamout -o $BBbedout
+	$RootDir/scripts/macs_bedpe_from_bampe.sh -i $BBbamout -o $BBbedout
 	if [ $? -ne 0 ] || [ ! -s $BBbedout ]; then
 		echo "${BBsubinfo}Error: bam2bed error" >&2
 		exit 100
@@ -193,35 +197,42 @@ Bampe2Bedpe () {
 	
 	return 0;
 }
+randomDir () {
+	local RDdir=$1
+	
+	local BStest=0
+	local BSpfx="tmp_"
+	
+	while [ $BStest -eq 0 ]; do
+#		local BSrand=$(cat /dev/urandom | LC_CTYPE=C tr -dc '0-9a-zA-Z' | fold -w 8 | head -n 1);
+		local BSrand=$(perl -le 'BEGIN{@chars = ("0".."9", "a".."z", "A".."F");$len = 10;} while($len--){ $string .= $chars[rand @chars] }; print "$string";')
+		tmpRunDir="$RDdir/${BSpfx}${BSrand}"
+		if [ ! -d "$tmpRunDir" ]; then
+			BStest=1;
+			break
+		fi
+	done
+	
+	return 0
+}
 bedSort () {
 	local BSin=$1
 	local BSout=$2
 	local BStmpdir=$3
 	
-	local BStest=0
-	
 	if [ -z "$BStmpdir" ]; then
 		BStmpdir=$PWD
 	fi
-	while [ $BStest -eq 0 ]; do
-		local BSrand=$(cat /dev/urandom | LC_CTYPE=C tr -dc '0-9a-zA-Z' | fold -w 8 | head -n 1);
-		BStmpPath="$BStmpdir/tmp_${BSrand}"
-		if [ ! -d "$BStmpPath" ]; then
-			BStest=1;
-			break
-		fi
-	done
-	if [ -z "$BStmpPath" ]; then
-		BStmpPath=$PWD
-	fi
 	
-	sort-bed --max-mem $opt_m --tmpdir $BStmpPath $BSin > $BSout
+	randomDir "$BStmpdir"
+	
+	sort-bed --max-mem $opt_m --tmpdir $tmpRunDir $BSin > $BSout
 	if [ $? -ne 0 ] || [ ! -s "$BSout" ]; then
 		echo "Error: sort-bed error" >&2
-		echo "CMDs: sort-bed --max-mem $opt_m --tmpdir $BStmpPath $BSin > $BSout" >&2
+		echo "CMDs: sort-bed --max-mem $opt_m --tmpdir $tmpRunDir $BSin > $BSout" >&2
 	fi
 	
-	rm -rf $BStmpPath > /dev/null 2>&1
+	rm -rf $tmpRunDir > /dev/null 2>&1
 	
 	return 0
 }
@@ -238,16 +249,15 @@ bedSort2 () {
 	
 	return 0
 }
-#	
 
 
 
 #################### Command test ###################################
 
-#CmdExists 'macs2_bedpe_from_bampe.sh'
+#CmdExists 'macs_bedpe_from_bampe.sh'
 #if [ $? -ne 0 ]; then
-if [ ! -s $RootDir/scripts/macs2_bedpe_from_bampe.sh ]; then
-	echo "Error: script '$RootDir/scripts/macs2_bedpe_from_bampe.sh' is required but not found.  Aborting..." >&2 
+if [ ! -s $RootDir/scripts/macs_bedpe_from_bampe.sh ]; then
+	echo "Error: script '$RootDir/scripts/macs_bedpe_from_bampe.sh' is required but not found.  Aborting..." >&2 
 	exit 127
 fi
 CmdExists 'bedtools'
@@ -276,7 +286,26 @@ fi
 if [ ! -z "$opt_g" ]; then
 	echo "Info: Genome Size: $opt_g"
 else
-	echo "Error: setup genome size for MACS2" >&2
+	echo "Error: setup genome size for MACS" >&2
+	exit 100
+fi
+cmd_macs="macs3"
+if [ $opt_macs_vers -eq 2 ]; then
+	cmd_macs="macs2"
+	CmdExists 'macs2'
+	if [ $? -ne 0 ]; then
+		echo "Error: CMD 'macs2' in PROGRAM 'MACS2' is required but not found.  Aborting..." >&2 
+		exit 127
+	fi
+elif [ $opt_macs_vers -eq 3 ]; then
+	cmd_macs="macs3"
+	CmdExists 'macs3'
+	if [ $? -ne 0 ]; then
+		echo "Error: CMD 'macs3' in PROGRAM 'MACS3' is required but not found.  Aborting..." >&2 
+		exit 127
+	fi
+else
+	echo "Error: please use -macs 2/3 to specify which MACS version to use:  2=MACS2 3=MACS3" >&2
 	exit 100
 fi
 
@@ -393,31 +422,35 @@ if [ ! -s "$OutBedpe2Sort.pdf" ]; then
 fi
 
 
-### 3. MACS2
-echo "### 3. Call peaks by MACS2"; echo "### 3. Call peaks by MACS2" >&2
+### 3. MACS
+echo "### 3. Call peaks by $cmd_macs"; echo "### 3. Call peaks by $cmd_macs" >&2
 if [ ! -s $OutBedpe2Sort ]; then
 	echo "Error: invalid sorted merged BEDPE: $OutBedpe2Sort" >&2
 	exit 100;
 fi
 
-Macs2Options="--verbose 3 --format BEDPE -g $opt_g --bdg --keep-dup all --nomodel --shift -37 --extsize 73"
-#Macs2Options="--verbose 3 --format BEDPE -g $opt_g --bdg --keep-dup all --nomodel --shift -100 --extsize 200 -SPMR -n peak"
+MacsOptions="--verbose 3 --format BEDPE -g $opt_g --bdg --keep-dup all --nomodel --shift -37 --extsize 73"
+#MacsOptions="--verbose 3 --format BEDPE -g $opt_g --bdg --keep-dup all --nomodel --shift -100 --extsize 200 -SPMR -n peak"
 ### -B, --bdg    save extended fragment pileup, and local lambda tracks (two files) at every bp into a bedGraph file.
 ### --SPMR       If True, MACS will SAVE signal per million reads for fragment pileup profiles. It won't interfere with computing pvalue/qvalue during peak calling, since internally MACS2 keeps using the raw pileup and scaling factors between larger and smaller dataset to calculate statistics measurements. If you plan to use the signal output in bedGraph to call peaks using bdgcmp and bdgpeakcall, you shouldn't use this option because you will end up with different results. However, this option is recommended for displaying normalized pileup tracks across many datasets. Require -B to be set. Default: False
 ### -n NAME, --name NAME  Experiment name, which will be used to generate output file names. DEFAULT: "NA"
 if [ -s "$opt_c" ] && [ -s "$BedControlSort" ]; then
-	Macs2Options="$Macs2Options --control $BedControlSort"
+	MacsOptions="$MacsOptions --control $BedControlSort"
 fi
 
 MacsMergedPeaks="$opt_D/$opt_o/${opt_o}_peaks.narrowPeak"
 if [ ! -d $opt_D/$opt_o ] || [ ! -s $MacsMergedPeaks ]; then
+	randomDir "$opt_D"
+	
 	echo "Info: call peaks for merged BEDPE: $OutBedpe2Sort"
-	echo "      CMD: macs2 callpeak $Macs2Options --treatment $OutBedpe2Sort --outdir $opt_D/$opt_o --name $opt_o > $opt_o.macs2.log 2>&1"
-	macs2 callpeak $Macs2Options --treatment $OutBedpe2Sort --outdir $opt_D/$opt_o --name $opt_o > $opt_o.macs2.log 2>&1
+	echo "      CMD: $cmd_macs callpeak $MacsOptions --treatment $OutBedpe2Sort --outdir $opt_D/$opt_o --name $opt_o --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1"
+	$cmd_macs callpeak $MacsOptions --treatment $OutBedpe2Sort --outdir $opt_D/$opt_o --name $opt_o --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1
 	if [ $? -ne 0 ] && [ ! -s $MacsMergedPeaks ]; then
-		echo "Info: MACS2 running error" >&2
+		echo "Info: $cmd_macs running error" >&2
+		echo "      CMD: $cmd_macs callpeak $MacsOptions --treatment $OutBedpe2Sort --outdir $opt_D/$opt_o --name $opt_o --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1" >&2
 		exit 100
 	fi
+	
 else
 	echo "Info: using existing PEAKs for merged BEDPE: $OutBedpe2Sort"
 fi
@@ -443,14 +476,17 @@ for ((BedpeNum=0; BedpeNum<${#BedArr[@]};BedpeNum++)); do
 		mkdir -p $opt_D/${RepPfxArr[$BedpeNum]}
 	fi
 	if [ ! -s $MacsPeaks ]; then
+		randomDir "$opt_D"
+		
 		echo "Info: call peaks for BEDPE: ${BedArr[$BedpeNum]}"
-		echo "      CMD: macs2 callpeak $Macs2Options --treatment ${BedArr[$BedpeNum]} --outdir $opt_D/${RepPfxArr[$BedpeNum]} --name ${RepPfxArr[$BedpeNum]} > $opt_o.macs2.log 2>&1"
-		macs2 callpeak $Macs2Options --treatment ${BedArr[$BedpeNum]} --outdir $opt_D/${RepPfxArr[$BedpeNum]} --name ${RepPfxArr[$BedpeNum]} > $opt_o.macs2.log 2>&1
+		echo "      CMD: $cmd_macs callpeak $MacsOptions --treatment ${BedArr[$BedpeNum]} --outdir $opt_D/${RepPfxArr[$BedpeNum]} --name ${RepPfxArr[$BedpeNum]} --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1"
+		$cmd_macs callpeak $MacsOptions --treatment ${BedArr[$BedpeNum]} --outdir $opt_D/${RepPfxArr[$BedpeNum]} --name ${RepPfxArr[$BedpeNum]} --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1
 		if [ $? -ne 0 ] && [ ! -s $MacsPeaks ]; then
-			echo "Error: MACS2 running error for BEDPE: ${BedArr[$BedpeNum]}" >&2
-			echo "    CMD:macs2 callpeak $Macs2Options --treatment ${BedArr[$BedpeNum]} --outdir $opt_D/${RepPfxArr[$BedpeNum]} --name ${RepPfxArr[$BedpeNum]} > $opt_o.macs2.log 2>&1" >&2
+			echo "Error: $cmd_macs running error for BEDPE: ${BedArr[$BedpeNum]}" >&2
+			echo "    CMD:$cmd_macs callpeak $MacsOptions --treatment ${BedArr[$BedpeNum]} --outdir $opt_D/${RepPfxArr[$BedpeNum]} --name ${RepPfxArr[$BedpeNum]} --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1" >&2
 			exit 100
 		fi
+		rm -rf $tmpRunDir > /dev/null 2>&1
 	else
 		echo "Info: using existing PEAKs for BEDPE: ${BedArr[$BedpeNum]}"
 	fi
@@ -489,3 +525,4 @@ done
 echo "#################### END #######################"
 echo "#################### END #######################" >&2
 
+exit 0
