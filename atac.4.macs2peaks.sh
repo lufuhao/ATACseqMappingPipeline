@@ -58,6 +58,7 @@ Requirements:
     samtools
     Rscript
     BEDOPS
+    MACS2/3
 
 
 
