@@ -241,7 +241,7 @@ done
 if [ -z "$opt_TGopt" ]; then
 	TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length $opt_l --trim1"
 else
-	TrimgloreOptions = "${opt_TGopt} --length ${opt_l}"
+	TrimgloreOptions="${opt_TGopt} --length ${opt_l}"
 fi
 if [ -z "$opt_TGadp" ]; then
 	if [ -z "$TRIMMOMATIC_ADAPTERS" ] || [ ! -d "$TRIMMOMATIC_ADAPTERS" ]; then
