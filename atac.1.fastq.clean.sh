@@ -96,6 +96,7 @@ Options:
                       '--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --trim1'
   -adp  <STR>      Trimmomatic Adaptors file in full path, default:
                       '\$TRIMMOMATIC_ADAPTERS/NexteraPE-PE.fa'
+   -mode <1/2>     1=ATACseq mode, 2=DNA/RNAseq mode, default: 1
 
 Example:
   $0 -1 Fq1.R1.gz,Fq2.R1.gz -2 Fq1.R2.gz,Fq2.R2.gz \
@@ -146,6 +147,7 @@ opt_l=70
 opt_q=15
 opt_TGopt=""
 opt_TGadp=""
+opt_mode=1
 
 #################### Parameters #####################################
 while [ -n "$1" ]; do
@@ -161,9 +163,10 @@ while [ -n "$1" ]; do
     -t) opt_t=$2;shift 2;;
     -s) StepArr=($(echo $2 | tr ',' "\n"));shift 2;;
     -l) opt_l=$2;shift 2;;
-    -q) opt_q=15;shift 2;;
+    -q) opt_q=$2;shift 2;;
     -opt) opt_TGopt=$2;shift 2;;
     -adp) opt_TGadp=$2;shift 2;;
+    -mode) opt_mode=$2;shift 2;;
     --) shift;break;;
     -*) echo "Error: no such option $1. -h for help" > /dev/stderr;exit 1;;
     *) break;;
@@ -239,7 +242,14 @@ for IndStep in ${StepArr[@]}; do
 done
 
 if [ -z "$opt_TGopt" ]; then
-	TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length $opt_l --trim1"
+	if [ $opt_mode -eq 1 ]; then
+		TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length $opt_l --trim1"
+	elif [ $opt_mode -eq 2 ]; then
+		TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --length $opt_l"
+	else
+		echo "Error: unknown -mode: $opt_mode; using default ATACseq" >&2
+		TrimgloreOptions="--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --length $opt_l --trim1"
+	fi
 else
 	TrimgloreOptions="${opt_TGopt} --length ${opt_l}"
 fi
