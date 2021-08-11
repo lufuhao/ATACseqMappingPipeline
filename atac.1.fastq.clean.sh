@@ -260,7 +260,7 @@ fi
 echo "    FastQC DIR:          $opt_Dfqc"
 echo "    trim_galore DIR:     $opt_Dgal"
 echo "    trimmomatic DIR:     $opt_Dtrm"
-echo "    Trim_galore options: $trimgloreOptions"
+echo "    Trim_galore options: $TrimgloreOptions"
 echo "    Trimmomatic adaptor: $TrimmomaticAdapters"
 
 
