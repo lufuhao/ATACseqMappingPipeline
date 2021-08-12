@@ -146,7 +146,7 @@ StepArr=(1 2 3)
 opt_l=70
 opt_q=15
 opt_TGopt=""
-opt_TGadp=""
+opt_TMadp=""
 opt_mode=1
 
 #################### Parameters #####################################
@@ -165,7 +165,7 @@ while [ -n "$1" ]; do
     -l) opt_l=$2;shift 2;;
     -q) opt_q=$2;shift 2;;
     -opt) opt_TGopt=$2;shift 2;;
-    -adp) opt_TGadp=$2;shift 2;;
+    -adp) opt_TMadp=$2;shift 2;;
     -mode) opt_mode=$2;shift 2;;
     --) shift;break;;
     -*) echo "Error: no such option $1. -h for help" > /dev/stderr;exit 1;;
@@ -209,7 +209,7 @@ fi
 
 
 #################### Defaults #######################################
-echo "Info: parameters"
+echo "Info: checking parameters"
 
 if [ -z "$opt_Dfqc" ]; then
 	opt_Dfqc="$opt_Drun/0.fastqc"
@@ -225,20 +225,12 @@ step1=0
 step2=0
 step3=0
 for IndStep in ${StepArr[@]}; do
-	if [ $IndStep -gt 0 ] && [ $IndStep -lt 4 ]; then
-		if [ $IndStep -eq 1 ]; then
-			step1=1
-		fi
-		if [ $IndStep -eq 2 ]; then
-			step2=1
-		fi
-		if [ $IndStep -eq 3 ]; then
-			step3=1
-		fi
-	else
-		echo "Error: invalid step number: $IndStep" >&2
-		exit 100
-	fi
+	case ${IndStep} in 
+		1) step1=1;;
+		2) step2=1;;
+		3) step3=1;;
+		*) echo "Error: invalid step number: $IndStep" >&2; exit 100;;
+	esac
 done
 
 if [ -z "$opt_TGopt" ]; then
@@ -253,26 +245,42 @@ if [ -z "$opt_TGopt" ]; then
 else
 	TrimgloreOptions="${opt_TGopt} --length ${opt_l}"
 fi
-if [ -z "$opt_TGadp" ]; then
+if [ -z "$opt_TMadp" ]; then
 	if [ -z "$TRIMMOMATIC_ADAPTERS" ] || [ ! -d "$TRIMMOMATIC_ADAPTERS" ]; then
 		echo "Error: Please set TRIMMOMATIC_ADAPTERS to the folder where trimmomatics adaptors locate" >&2
 		exit 100
 	fi
-	TrimmomaticAdapters="$TRIMMOMATIC_ADAPTERS/NexteraPE-PE.fa"
+	if [ $opt_mode -eq 1 ]; then
+		TrimmomaticAdapters="$TRIMMOMATIC_ADAPTERS/NexteraPE-PE.fa"
+	elif [ $opt_mode -eq 2 ]; then
+		echo "Error: Please specify adaptor file for Trimmomatic" >&2
+		exit 100
+	fi
 else
-	TrimmomaticAdapters=$opt_TGadp
+	TrimmomaticAdapters=$opt_TMadp
 fi
 if [ ! -s $TrimmomaticAdapters ]; then
 	echo "Error: Trimmomatic adaptors not found: $TrimmomaticAdapters" >&2
 	exit 100
 fi
 
-echo "    FastQC DIR:          $opt_Dfqc"
-echo "    trim_galore DIR:     $opt_Dgal"
-echo "    trimmomatic DIR:     $opt_Dtrm"
-echo "    Trim_galore options: $TrimgloreOptions"
-echo "    Trimmomatic adaptor: $TrimmomaticAdapters"
 echo "    Running Step: FastQC: $step1; Trim_Galore: $step2; Trimmomatic: $step3"
+if [ $step1 -eq 1 ]; then
+	echo "    FastQC DIR:          $opt_Dfqc"
+fi
+if [ $step2 -eq 1 ]; then
+	echo "    Running mode:        $opt_mode"
+	echo "    trim_galore DIR:     $opt_Dgal"
+	echo "    Trim_galore options: $TrimgloreOptions"
+fi
+if [ $step3 -eq 1 ]; then
+	echo "    trimmomatic DIR:     $opt_Dtrm"
+	echo "    Trimmomatic adaptor: $TrimmomaticAdapters"
+fi
+
+
+
+
 
 
 
@@ -298,14 +306,14 @@ if [ ${#FastQR1Arr[@]} -ne ${#FastQR2Arr[@]} ]; then
 	echo "Error: inequal FastQ input R1 and R2" >&2
 	exit 100
 fi
-if [ ${#PfxArr[@]} -ne ${#FastQR1Arr[@]} ] || [ ${#PfxArr[@]} -ne ${#FastQR1Arr[@]} ]; then
+if [ ${#PfxArr[@]} -ne ${#FastQR1Arr[@]} ] || [ ${#PfxArr[@]} -ne ${#FastQR2Arr[@]} ]; then
 	echo "Error: inequal between FastQ input and prefix" >&2
 	exit 100
 fi
 
 
 #################### Main ###########################################
-
+exit 0
 
 
 cd $RunDir
