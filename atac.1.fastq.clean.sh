@@ -96,7 +96,7 @@ Options:
                       '--paired --gzip --output_dir ./ --quality 3 --phred33 --nextera --trim1'
   -adp  <STR>      Trimmomatic Adaptors file in full path, default:
                       '\$TRIMMOMATIC_ADAPTERS/NexteraPE-PE.fa'
-   -mode <1/2>     1=ATACseq mode, 2=DNA/RNAseq mode, default: 1
+  -mode <1/2>      1=ATACseq mode, 2=DNA/RNAseq mode, default: 1
 
 Example:
   $0 -1 Fq1.R1.gz,Fq2.R1.gz -2 Fq1.R2.gz,Fq2.R2.gz \
@@ -272,6 +272,7 @@ echo "    trim_galore DIR:     $opt_Dgal"
 echo "    trimmomatic DIR:     $opt_Dtrm"
 echo "    Trim_galore options: $TrimgloreOptions"
 echo "    Trimmomatic adaptor: $TrimmomaticAdapters"
+echo "    Running Step: FastQC: $step1; Trim_Galore: $step2; Trimmomatic: $step3"
 
 
 
@@ -279,16 +280,28 @@ echo "    Trimmomatic adaptor: $TrimmomaticAdapters"
 if [ ! -d $opt_D ]; then
 	mkdir -p $opt_D
 fi
-if [ ! -d $opt_Dfqc ]; then
+if [ ! -d $opt_Dfqc ] && [ $step1 -eq 1 ]; then
 	mkdir -p $opt_Dfqc
 fi
-if [ ! -d $opt_Dgal ]; then
+if [ ! -d $opt_Dgal ] && [ $step2 -eq 1 ]; then
 	mkdir -p $opt_Dgal
 fi
-if [ ! -d $opt_Dtrm ]; then
+if [ ! -d $opt_Dtrm ] && [ $step3 -eq 1 ]; then
 	mkdir -p $opt_Dtrm
 fi
 
+if [ ${#FastQR1Arr[@]} -eq 0 ] || [ ${#FastQR2Arr[@]} -eq 0 ]; then
+	echo "Error: empty FastQ input R1 or R2" >&2
+	exit 100
+fi
+if [ ${#FastQR1Arr[@]} -ne ${#FastQR2Arr[@]} ]; then
+	echo "Error: inequal FastQ input R1 and R2" >&2
+	exit 100
+fi
+if [ ${#PfxArr[@]} -ne ${#FastQR1Arr[@]} ] || [ ${#PfxArr[@]} -ne ${#FastQR1Arr[@]} ]; then
+	echo "Error: inequal between FastQ input and prefix" >&2
+	exit 100
+fi
 
 
 #################### Main ###########################################
