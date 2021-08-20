@@ -231,6 +231,7 @@ bedSort () {
 	if [ $? -ne 0 ] || [ ! -s "$BSout" ]; then
 		echo "Error: sort-bed error" >&2
 		echo "CMDs: sort-bed --max-mem $opt_m --tmpdir $tmpRunDir $BSin > $BSout" >&2
+		exit 100
 	fi
 	
 	rm -rf $tmpRunDir > /dev/null 2>&1
