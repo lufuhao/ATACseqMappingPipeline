@@ -443,7 +443,7 @@ fi
 MacsMergedPeaks="$opt_D/$opt_o/${opt_o}_peaks.narrowPeak"
 if [ ! -d $opt_D/$opt_o ] || [ ! -s $MacsMergedPeaks ]; then
 	randomDir "$opt_D"
-	
+	mkdir -p $tmpRunDir
 	echo "Info: call peaks for merged BEDPE: $OutBedpe2Sort"
 	echo "      CMD: $cmd_macs callpeak $MacsOptions --treatment $OutBedpe2Sort --outdir $opt_D/$opt_o --name $opt_o --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1"
 	$cmd_macs callpeak $MacsOptions --treatment $OutBedpe2Sort --outdir $opt_D/$opt_o --name $opt_o --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1
@@ -452,7 +452,7 @@ if [ ! -d $opt_D/$opt_o ] || [ ! -s $MacsMergedPeaks ]; then
 		echo "      CMD: $cmd_macs callpeak $MacsOptions --treatment $OutBedpe2Sort --outdir $opt_D/$opt_o --name $opt_o --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1" >&2
 		exit 100
 	fi
-	
+	rm -rf $tmpRunDir > /dev/null 2>&1
 else
 	echo "Info: using existing PEAKs for merged BEDPE: $OutBedpe2Sort"
 fi
@@ -479,7 +479,7 @@ for ((BedpeNum=0; BedpeNum<${#BedArr[@]};BedpeNum++)); do
 	fi
 	if [ ! -s $MacsPeaks ]; then
 		randomDir "$opt_D"
-		
+		mkdir -p $tmpRunDir
 		echo "Info: call peaks for BEDPE: ${BedArr[$BedpeNum]}"
 		echo "      CMD: $cmd_macs callpeak $MacsOptions --treatment ${BedArr[$BedpeNum]} --outdir $opt_D/${RepPfxArr[$BedpeNum]} --name ${RepPfxArr[$BedpeNum]} --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1"
 		$cmd_macs callpeak $MacsOptions --treatment ${BedArr[$BedpeNum]} --outdir $opt_D/${RepPfxArr[$BedpeNum]} --name ${RepPfxArr[$BedpeNum]} --tempdir $tmpRunDir > $opt_o.$cmd_macs.log 2>&1
